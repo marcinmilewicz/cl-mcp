@@ -1,0 +1,21 @@
+{
+  "name": "cl-mcp",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "vitest run",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "clean": "rm -rf packages/*/dist",
+    "example:setup": "npm run build && cd examples/angular-material && npm run setup",
+    "example:run": "cd examples/angular-material && npm run pipeline",
+    "inspect": "CL_MCP_METADATA_PATH=./data/angular-material/component-metadata.json npx @modelcontextprotocol/inspector node packages/mcp-server/dist/index.js"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@types/node": "^25.6.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.2.1"
+  }
+}

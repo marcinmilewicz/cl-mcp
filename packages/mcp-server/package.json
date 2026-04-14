@@ -1,0 +1,22 @@
+{
+  "name": "@cl-mcp/mcp-server",
+  "version": "1.0.0",
+  "description": "Universal MCP server for component library metadata",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "cl-mcp-server": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "zod": "^3.25.0"
+  },
+  "peerDependencies": {
+    "@cl-mcp/analyzer": "*"
+  }
+}
