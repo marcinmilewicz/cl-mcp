@@ -49,7 +49,7 @@ CL_MCP_METADATA_PATH=./data/angular-material/component-metadata.json node packag
 Layered architecture:
 - **Protocol layer** (`src/protocol/`) — MCP tool/resource definitions and request routing. `tools.ts` defines the 5 MCP tools, `router.ts` dispatches to domain handlers, `resources.ts` serves quick-reference resources.
 - **Domain layer** (`src/domain/`) — Business logic. `search.ts` (semantic search with keyword expansion), `resolver.ts` (name resolution cascade: exact → selector → fuzzy → semantic), `formatters.ts` (output formatting), `context.ts` (quick context generation).
-- **Data layer** (`src/data/`) — `metadata.ts` loads and provides access to component-metadata.json. `paths.ts` resolves the metadata file path via env vars (`CL_MCP_METADATA_PATH`, `CL_MCP_DATA_DIR`) or convention.
+- **Data layer** (`src/data/`) — `metadata.ts` loads and provides access to component-metadata.json. `paths.ts` resolves the metadata file path via env vars (`CL_MCP_METADATA_PATH`, `CL_MCP_DATA_DIR`).
 - `src/config.ts` — Runtime config derived from loaded metadata (library name, selector prefix, version).
 
 ### MCP Tools Exposed
@@ -77,4 +77,4 @@ npm run example:setup    # Build packages + install Angular Material deps
 npm run example:run      # Analyze Angular Material + verify MCP server responds
 ```
 
-The analyzer outputs `data/angular-material/component-metadata.json` (gitignored). The verify script spawns the MCP server, sends JSON-RPC requests, and asserts all 5 tools work.
+The analyzer outputs `examples/angular-material/data/component-metadata.json` (gitignored). The verify script spawns the MCP server, sends JSON-RPC requests, and asserts all 5 tools work.

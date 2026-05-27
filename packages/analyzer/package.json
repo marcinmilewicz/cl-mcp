@@ -2,15 +2,35 @@
   "name": "@cl-mcp/analyzer",
   "version": "1.0.0",
   "description": "Build-time component analysis tools for Angular component libraries",
+  "keywords": ["angular", "component-library", "ast", "metadata", "mcp"],
+  "license": "MIT",
+  "author": "Marcin Milewicz",
+  "homepage": "https://github.com/marcinmilewicz/cl-mcp/tree/main/packages/analyzer#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marcinmilewicz/cl-mcp.git",
+    "directory": "packages/analyzer"
+  },
+  "bugs": {
+    "url": "https://github.com/marcinmilewicz/cl-mcp/issues"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
     "cl-mcp-analyze": "./dist/cli/generate-metadata.js"
   },
+  "files": ["dist", "README.md", "LICENSE"],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@angular/compiler": "^17.0.0 || ^18.0.0 || ^19.0.0 || ^20.0.0",

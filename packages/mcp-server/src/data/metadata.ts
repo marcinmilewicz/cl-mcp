@@ -8,12 +8,12 @@
 import fs from 'node:fs';
 import type { AnalyzedComponentEntry, FileAnalysis, ComponentMetadataFile, ComponentMetadataEntry } from '../types.js';
 import type { ComponentSearchMeta } from '../domain/search.js';
-import { METADATA_PATH } from './paths.js';
+import { getMetadataPath } from './paths.js';
 import { setLibraryConfig } from '../config.js';
 import { parseComponentMetadata } from './schema.js';
 
 export type { ComponentMetadataEntry, ComponentMetadataFile } from '../types.js';
-export { METADATA_PATH } from './paths.js';
+export { getMetadataPath } from './paths.js';
 
 // ── State ───────────────────────────────────────────────────────────
 
@@ -33,20 +33,21 @@ export function getMetadata(): ComponentMetadataFile {
  * Must be called once before any tool handlers access metadata.
  */
 export function loadPreloadedMetadata(): void {
-  if (!fs.existsSync(METADATA_PATH)) {
+  const metadataPath = getMetadataPath();
+  if (!fs.existsSync(metadataPath)) {
     throw new Error(
-      `[MCP] Component metadata not found at ${METADATA_PATH}. ` +
-      `Set CL_MCP_METADATA_PATH to the correct path.`
+      `[MCP] Component metadata not found at ${metadataPath}. ` +
+      `Set CL_MCP_metadataPath to the correct path.`
     );
   }
 
   try {
-    const content = fs.readFileSync(METADATA_PATH, 'utf-8');
+    const content = fs.readFileSync(metadataPath, 'utf-8');
     let raw: unknown;
     try {
       raw = JSON.parse(content);
     } catch (parseErr) {
-      throw new Error(`[cl-mcp] Could not parse ${METADATA_PATH} as JSON: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`);
+      throw new Error(`[cl-mcp] Could not parse ${metadataPath} as JSON: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`);
     }
     try {
       _metadata = parseComponentMetadata(raw);
@@ -64,7 +65,7 @@ export function loadPreloadedMetadata(): void {
     console.error(
       `[MCP] Loaded metadata v${_metadata.version} ` +
       `(${Object.keys(_metadata.components).length} components) ` +
-      `from ${METADATA_PATH}`
+      `from ${metadataPath}`
     );
 
     // Schema-version compatibility check (v4.0 sentinel changes are breaking).

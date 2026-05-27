@@ -33,10 +33,10 @@ ANGULAR_COMPONENTS_REF=21.2.x npm run setup
 |------------|-------------------------------------------------------------------|
 | `setup`    | Clone `angular/components` into `./components` (idempotent)       |
 | `analyze`  | Run the analyzer against `./components/src/material`              |
-| `serve`    | Start the MCP server (uses metadata from `data/angular-material/`)|
+| `serve`    | Start the MCP server (uses metadata from `./data/`)               |
 | `verify`   | Smoke test: spawns server, checks tools and `get_library_overview`|
 | `pipeline` | Run `analyze` then `verify` in sequence                           |
 
 ## Output
 
-The analyzer writes `component-metadata.json` to `data/angular-material/` at the monorepo root. The cloned `components/` directory and the metadata output are both gitignored.
+The analyzer writes `component-metadata.json` to `./data/` inside this example directory. The cloned `components/` directory and the metadata output are both gitignored.

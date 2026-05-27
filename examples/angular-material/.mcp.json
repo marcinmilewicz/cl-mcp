@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "cl-mcp": {
+      "command": "npx",
+      "args": ["-y", "@cl-mcp/mcp-server"],
+      "env": {
+        "CL_MCP_METADATA_PATH": "./data/component-metadata.json"
+      }
+    }
+  }
+}

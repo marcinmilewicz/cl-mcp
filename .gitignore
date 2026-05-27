@@ -3,6 +3,6 @@ dist/
 *.tsbuildinfo
 .DS_Store
 *.log
-data/*/component-metadata.json
+examples/*/data/component-metadata.json
 examples/*/node_modules/
 examples/angular-material/components/

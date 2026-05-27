@@ -12,7 +12,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { MCP_SERVER_VERSION, getLibraryConfig } from "./config.js";
-import { METADATA_PATH, loadPreloadedMetadata } from "./data/metadata.js";
+import { getMetadataPath, loadPreloadedMetadata } from "./data/metadata.js";
 import { registerResourceHandlers } from "./protocol/resources.js";
 import { registerToolHandlers } from "./protocol/router.js";
 import { registerToolDefinitions } from "./protocol/tools.js";
@@ -42,7 +42,7 @@ async function main(): Promise<void> {
 
   const config = getLibraryConfig();
   console.error(`Library: ${config.packageName} v${config.version}`);
-  console.error(`Metadata: ${METADATA_PATH}`);
+  console.error(`Metadata: ${getMetadataPath()}`);
   if (config.selectorPrefix) {
     console.error(`Selector prefix: ${config.selectorPrefix}`);
   }

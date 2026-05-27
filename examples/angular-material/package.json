@@ -5,8 +5,8 @@
   "description": "Example: analyze Angular Material source and verify MCP server pipeline",
   "scripts": {
     "setup": "node scripts/clone-source.mjs",
-    "analyze": "node ../../packages/analyzer/dist/cli/generate-metadata.js --framework angular --path ./components/src/material --package @angular/material --prefix mat --output ../../data/angular-material/component-metadata.json",
-    "serve": "node ../../packages/mcp-server/dist/index.js",
+    "analyze": "node ../../packages/analyzer/dist/cli/generate-metadata.js --framework angular --path ./components/src/material --package @angular/material --prefix mat --output ./data/component-metadata.json",
+    "serve": "CL_MCP_METADATA_PATH=./data/component-metadata.json node ../../packages/mcp-server/dist/index.js",
     "verify": "node scripts/verify-server.mjs",
     "pipeline": "npm run analyze && npm run verify"
   }

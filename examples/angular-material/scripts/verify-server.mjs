@@ -13,8 +13,9 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..', '..', '..');
+const EXAMPLE_ROOT = resolve(__dirname, '..');
 const SERVER_PATH = resolve(ROOT, 'packages/mcp-server/dist/index.js');
-const METADATA_PATH = resolve(ROOT, 'data/angular-material/component-metadata.json');
+const METADATA_PATH = resolve(EXAMPLE_ROOT, 'data/component-metadata.json');
 
 const EXPECTED_TOOL_COUNT = 5;
 const TIMEOUT_MS = 30_000;

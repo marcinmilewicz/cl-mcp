@@ -48,9 +48,8 @@ CL_MCP_METADATA_PATH=./data/angular-material/component-metadata.json \
 |----------|----------|---------|---------|
 | `CL_MCP_METADATA_PATH` | no* | — | Direct path to a `component-metadata.json` file, **or** a directory containing one. Path-traversal (`..`) is rejected. Resolved to absolute. |
 | `CL_MCP_DATA_DIR` | no* | — | Path to a parent data directory. The server scans immediate subdirectories for a `component-metadata.json`; first match wins. Also checks the root of `CL_MCP_DATA_DIR` itself. |
-| — | — | convention | If neither env var is set, walks up from the dist folder looking for a monorepo root (`vitest.workspace.ts`) and scans `<root>/data/<lib>/component-metadata.json`. |
 
-\* At least one resolution strategy must succeed, or startup fails with a clear error. Path resolution lives in `src/data/paths.ts:40` (`resolveMetadataPath`). The resolved path is frozen into the module-level `METADATA_PATH` constant.
+\* Exactly one of these env vars must be set, or startup fails with a clear error. Path resolution lives in `src/data/paths.ts` (`resolveMetadataPath`). It is invoked lazily and memoized via `getMetadataPath()` — importing the module has no side effects; resolution happens on first use (server startup), so a misconfigured path still fails fast.
 
 ### 2.2 What you cannot configure
 
@@ -121,7 +120,7 @@ Key design choices (schema v4.x):
 
 `loadPreloadedMetadata()`:
 
-1. `fs.existsSync` check on `METADATA_PATH`, else throw with guidance.
+1. `fs.existsSync` check on `getMetadataPath()`, else throw with guidance.
 2. `fs.readFileSync` → `JSON.parse` (wrapped; parse errors get a specific message).
 3. `parseComponentMetadata(raw)` (Zod) → populates `_metadata`.
 4. `buildImportedByIndex(_metadata)` — reverses `importsFrom` edges into each target's `importedBy`. **`importedBy` is not on disk** (would otherwise drift against `importsFrom`); it is derived once at load.
@@ -329,7 +328,7 @@ src/
 │   ├── context.ts             # quick-reference (markdown + JSON)
 │   └── formatters.ts          # per-detail-level markdown builders
 └── data/
-    ├── paths.ts               # CL_MCP_METADATA_PATH / CL_MCP_DATA_DIR / convention
+    ├── paths.ts               # CL_MCP_METADATA_PATH / CL_MCP_DATA_DIR
     ├── metadata.ts            # load + index + accessors
     └── schema.ts              # Zod trust-boundary validator
 ```

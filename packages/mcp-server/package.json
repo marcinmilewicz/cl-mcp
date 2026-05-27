@@ -2,21 +2,39 @@
   "name": "@cl-mcp/mcp-server",
   "version": "1.0.0",
   "description": "Universal MCP server for component library metadata",
+  "keywords": ["mcp", "model-context-protocol", "component-library", "angular", "llm"],
+  "license": "MIT",
+  "author": "Marcin Milewicz",
+  "homepage": "https://github.com/marcinmilewicz/cl-mcp/tree/main/packages/mcp-server#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marcinmilewicz/cl-mcp.git",
+    "directory": "packages/mcp-server"
+  },
+  "bugs": {
+    "url": "https://github.com/marcinmilewicz/cl-mcp/issues"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
     "cl-mcp-server": "./dist/index.js"
   },
+  "files": ["dist", "README.md", "LICENSE"],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "@cl-mcp/analyzer": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "zod": "^3.25.0"
-  },
-  "peerDependencies": {
-    "@cl-mcp/analyzer": "*"
   }
 }
