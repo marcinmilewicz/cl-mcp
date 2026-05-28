@@ -5,4 +5,5 @@ dist/
 *.log
 examples/*/data/component-metadata.json
 examples/*/node_modules/
+examples/*/.angular
 examples/angular-material/components/

@@ -4,10 +4,32 @@
   "private": true,
   "description": "Example: analyze Angular Material source and verify MCP server pipeline",
   "scripts": {
+    "start": "ng serve",
+    "build": "ng build",
     "setup": "node scripts/clone-source.mjs",
     "analyze": "node ../../packages/analyzer/dist/cli/generate-metadata.js --framework angular --path ./components/src/material --package @angular/material --prefix mat --output ./data/component-metadata.json",
     "serve": "CL_MCP_METADATA_PATH=./data/component-metadata.json node ../../packages/mcp-server/dist/index.js",
     "verify": "node scripts/verify-server.mjs",
     "pipeline": "npm run analyze && npm run verify"
+  },
+  "dependencies": {
+    "@angular/animations": "^21.2.8",
+    "@angular/cdk": "^21.2.6",
+    "@angular/common": "^21.2.8",
+    "@angular/compiler": "^21.2.8",
+    "@angular/core": "^21.2.8",
+    "@angular/forms": "^21.2.8",
+    "@angular/material": "^21.2.6",
+    "@angular/platform-browser": "^21.2.8",
+    "rxjs": "^7.8.2",
+    "tslib": "^2.6.0",
+    "zone.js": "^0.16.1"
+  },
+  "devDependencies": {
+    "@angular/build": "^21.2.0",
+    "@angular/cli": "^21.2.0",
+    "@angular/compiler-cli": "^21.2.8",
+    "sass": "^1.77.0",
+    "typescript": "~5.9.0"
   }
 }
