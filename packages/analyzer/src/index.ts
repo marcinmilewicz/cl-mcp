@@ -51,6 +51,7 @@ export type {
   ComponentMetadataFile,
   AnalyzerOptions,
   FrameworkAnalyzer,
+  SupportedFramework,
   AnalyzerDiagnostic,
   ResolvedValues,
   FilePath,
@@ -78,3 +79,9 @@ export {
 
 // Angular Analyzer
 export { AngularAstAnalyzer } from "./analyzers/angular/angular-analyzer.js";
+
+// Framework analyzers (the `FrameworkAnalyzer` seam)
+export {
+  AngularFrameworkAnalyzer,
+  METADATA_SCHEMA_VERSION,
+} from "./analyzers/angular/angular-framework-analyzer.js";

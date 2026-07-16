@@ -359,6 +359,9 @@ const ComponentMetadataEntrySchema = z.discriminatedUnion('kind', [
 export const ComponentMetadataFileSchema = z.object({
   version: z.string(),
   generatedAt: z.string(),
+  // v4.2 additive: absent means "angular" (every pre-v4.2 file was Angular).
+  framework: z.enum(['angular', 'react']).optional(),
+  libraryName: z.string().optional(),
   componentsPath: z.string(),
   importPrefix: z.string().optional(),
   libraryDocumentation: z.string().optional(),

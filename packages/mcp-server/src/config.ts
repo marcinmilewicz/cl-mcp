@@ -13,6 +13,8 @@ export interface LibraryConfig {
   selectorPrefix: string;
   packageName: string;
   version: string;
+  /** Framework of the loaded metadata. Absent (legacy pre-v4.2 files) means "angular". */
+  framework?: "angular" | "react";
 }
 
 let _config: LibraryConfig | null = null;

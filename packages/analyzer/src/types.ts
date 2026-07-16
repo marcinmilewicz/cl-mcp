@@ -616,6 +616,17 @@ export type ComponentMetadataEntry = EnhancedComponentMetadataEntry;
 export interface ComponentMetadataFile {
   version: string;
   generatedAt: string;
+  /**
+   * Which framework analyzer produced this file. Introduced in schema v4.2
+   * (additive); absent means `"angular"` (every pre-v4.2 file was Angular).
+   */
+  framework?: SupportedFramework;
+  /**
+   * Canonical package/library name (e.g. `@angular/material`). Introduced in
+   * schema v4.2 (additive). Consumers should prefer this over deriving the
+   * name from `componentsPath`.
+   */
+  libraryName?: string;
   componentsPath: string;
   importPrefix?: string;
   libraryDocumentation?: string;
@@ -646,6 +657,9 @@ export interface AnalyzerDiagnostic {
 // Analyzer Interface
 // ============================================================================
 
+/** Frameworks the metadata schema can describe. Only `angular` has an analyzer today. */
+export type SupportedFramework = "angular" | "react";
+
 export interface AnalyzerOptions {
   storybookPath?: string;
   documentationPath?: string;
@@ -656,6 +670,6 @@ export interface AnalyzerOptions {
 }
 
 export interface FrameworkAnalyzer {
-  readonly framework: "angular";
-  analyze(libraryPath: string, options: AnalyzerOptions): Promise<ComponentMetadataFile>;
+  readonly framework: SupportedFramework;
+  analyze(libraryPath: string, options?: AnalyzerOptions): Promise<ComponentMetadataFile>;
 }

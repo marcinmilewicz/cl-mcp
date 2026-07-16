@@ -83,9 +83,10 @@ export function loadPreloadedMetadata(): void {
       console.error(`[cl-mcp] ${_metadata.diagnostics.length} analyzer diagnostic(s): ${codes.join(', ')}`);
     }
 
-    // Derive library config from metadata
+    // Derive library config from metadata. v4.2+ files carry the canonical
+    // `libraryName`; older files fall back to the componentsPath heuristic.
     const componentsPath = _metadata.componentsPath || '';
-    const packageName = componentsPath.replace('node_modules/', '');
+    const packageName = _metadata.libraryName || componentsPath.replace('node_modules/', '');
     // Try to detect selector prefix from first component selector
     let selectorPrefix = '';
     if (_metadata.selectorMap) {
@@ -103,6 +104,7 @@ export function loadPreloadedMetadata(): void {
       selectorPrefix,
       packageName,
       version: _metadata.version,
+      framework: _metadata.framework ?? 'angular',
     });
   } catch (error) {
     throw new Error(`[MCP] Failed to load component metadata: ${error}`);
