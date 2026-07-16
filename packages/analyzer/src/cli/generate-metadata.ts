@@ -16,6 +16,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { AngularFrameworkAnalyzer } from "../analyzers/angular/angular-framework-analyzer.js";
+import { ReactFrameworkAnalyzer } from "../analyzers/react/react-framework-analyzer.js";
 import type { FrameworkAnalyzer } from "../types.js";
 
 // Re-exported from the framework analyzer for backwards compatibility (tests
@@ -32,6 +33,7 @@ export {
 
 const ANALYZER_FACTORIES: Record<string, () => FrameworkAnalyzer> = {
   angular: () => new AngularFrameworkAnalyzer(),
+  react: () => new ReactFrameworkAnalyzer(),
 };
 
 export const SUPPORTED_FRAMEWORKS = Object.keys(ANALYZER_FACTORIES);

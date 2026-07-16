@@ -85,3 +85,6 @@ export {
   AngularFrameworkAnalyzer,
   METADATA_SCHEMA_VERSION,
 } from "./analyzers/angular/angular-framework-analyzer.js";
+export { ReactFrameworkAnalyzer } from "./analyzers/react/react-framework-analyzer.js";
+export { ReactAstAnalyzer, parseDeprecationText } from "./analyzers/react/react-analyzer.js";
+export { JsxValidator } from "./analyzers/react/jsx-validator.js";
