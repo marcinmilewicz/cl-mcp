@@ -88,3 +88,17 @@ export {
 export { ReactFrameworkAnalyzer } from "./analyzers/react/react-framework-analyzer.js";
 export { ReactAstAnalyzer, parseDeprecationText } from "./analyzers/react/react-analyzer.js";
 export { JsxValidator } from "./analyzers/react/jsx-validator.js";
+
+// Workspace layer (multi-library discovery + orchestration)
+export type { WorkspaceManifest } from "./types.js";
+export {
+  loadWorkspaceConfig,
+  findWorkspaceConfig,
+  WorkspaceConfigSchema,
+  type WorkspaceConfig,
+  type LibraryEntry,
+  type ComponentLayout,
+} from "./workspace/config.js";
+export { detectFramework } from "./workspace/framework-detector.js";
+export { resolveLibraries, type ResolvedLibrary } from "./workspace/library-discovery.js";
+export { analyzeWorkspace, type WorkspaceAnalysisResult } from "./workspace/workspace-orchestrator.js";

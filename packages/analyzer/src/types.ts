@@ -639,6 +639,29 @@ export interface ComponentMetadataFile {
   diagnostics?: readonly AnalyzerDiagnostic[];
 }
 
+/**
+ * Workspace manifest (`workspace-manifest.json`) — describes a multi-library
+ * analysis run. Written next to the per-library metadata files. Optional:
+ * a single metadata file without a manifest is the single-library mode.
+ * Introduced with schema v4.2.
+ */
+export interface WorkspaceManifest {
+  version: string;
+  generatedAt: string;
+  libraries: ReadonlyArray<{
+    name: string;
+    framework: SupportedFramework;
+    /** Library root, relative to the workspace root at generation time. */
+    path: string;
+    importAlias: string;
+    /** Metadata file path, relative to the manifest's directory. */
+    metadataPath: string;
+  }>;
+  /** `libName -> [libNames it imports from]`. */
+  crossLibraryGraph: Record<string, string[]>;
+  diagnostics?: readonly AnalyzerDiagnostic[];
+}
+
 // ============================================================================
 // Diagnostics (schema v3.1)
 // ============================================================================
