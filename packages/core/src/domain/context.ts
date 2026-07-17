@@ -15,9 +15,14 @@ export function generateQuickContext(): QuickContext {
   const config = getLibraryConfig();
   const importCheatsheet: Record<string, string> = {};
 
+  const importHint = (componentName: string): string =>
+    (config.framework ?? "angular") === "react"
+      ? `import { ${componentName.split(".")[0]} } from '${config.packageName}';`
+      : `import { ... } from '${config.packageName}/${componentName}';`;
+
   if (metadata.selectorMap) {
     for (const componentName of components) {
-      importCheatsheet[componentName] = `import { ... } from '${config.packageName}/${componentName}';`;
+      importCheatsheet[componentName] = importHint(componentName);
     }
 
     return {
@@ -35,7 +40,7 @@ export function generateQuickContext(): QuickContext {
     const preloaded = getAnalyzedEntry(componentName);
     if (!preloaded) continue;
 
-    importCheatsheet[componentName] = `import { ... } from '${config.packageName}/${componentName}';`;
+    importCheatsheet[componentName] = importHint(componentName);
 
     for (const analysis of preloaded.analysis) {
       for (const comp of analysis.components) {

@@ -66,18 +66,23 @@ assert(
 );
 assert(totalCallbacks > 20, `expected plenty of detected callbacks, got ${totalCallbacks}`);
 
-// Hard-pattern representatives: helper-rendered (no JSX literal), custom
-// factory wrapper, and forwardRef respectively.
-for (const expected of ['DialogRoot', 'TooltipRoot', 'CheckboxRoot']) {
+// Hard-pattern representatives (compound public names): helper-rendered
+// (no JSX literal), custom factory wrapper, and forwardRef respectively.
+for (const expected of ['Dialog.Root', 'Tooltip.Root', 'Checkbox.Root']) {
   assert(names.includes(expected), `expected component ${expected} to be detected`);
 }
-const dialogRoot = metadata.components.DialogRoot.analysis[0].components[0];
+const compoundCount = names.filter((n) => n.includes('.')).length;
+assert(compoundCount >= 100, `expected most components to carry compound names, got ${compoundCount}`);
+
+const dialogRoot = metadata.components['Dialog.Root'].analysis[0].components[0];
+assert(dialogRoot.className === 'DialogRoot', 'className should stay the internal declaration name');
+assert(dialogRoot.metadata.selector === 'Dialog.Root', 'selector should be the compound public name');
 assert(
   dialogRoot.outputs.some((o) => o.name === 'onOpenChange'),
-  'DialogRoot should expose the onOpenChange callback',
+  'Dialog.Root should expose the onOpenChange callback',
 );
 
-console.log(`  Components: ${names.length} (${withProps} with props)`);
+console.log(`  Components: ${names.length} (${withProps} with props, ${compoundCount} compound-named)`);
 console.log(`  Prop types resolved: ${resolvedTypes}/${resolvedTypes + unresolvedTypes} (${(ratio * 100).toFixed(0)}%)`);
 console.log(`  Callback props: ${totalCallbacks}`);
 
@@ -152,20 +157,39 @@ async function verifyServer() {
     if (init.error) fail(`initialize failed: ${JSON.stringify(init.error)}`);
     send(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }));
 
-    const dialog = await call('get_component', { componentName: 'DialogRoot' });
+    // Both name forms must resolve: the compound public name AND the
+    // internal declaration name (resolver strips separators including '.').
+    const dialog = await call('get_component', { componentName: 'Dialog.Root' });
     const dialogText = dialog.content.map((c) => c.text).join('');
-    assert(dialogText.includes('onOpenChange'), 'get_component DialogRoot should list onOpenChange');
-    assert(dialogText.includes('modal'), 'get_component DialogRoot should list the modal prop');
+    assert(dialogText.includes('onOpenChange'), 'get_component Dialog.Root should list onOpenChange');
+    assert(dialogText.includes('modal'), 'get_component Dialog.Root should list the modal prop');
 
+    const dialogByInternal = await call('get_component', { componentName: 'DialogRoot' });
+    assert(
+      dialogByInternal.content.map((c) => c.text).join('').includes('onOpenChange'),
+      'internal name DialogRoot should resolve to Dialog.Root',
+    );
+
+    // Compound JSX usage validates; internal-name JSX + internal component
+    // name keep working too.
     const ok = await call('validate_usage', {
-      code: '<DialogRoot defaultOpen={true} modal="trap-focus" />',
+      code: '<Dialog.Root defaultOpen={true} modal="trap-focus" />',
+      componentNames: ['Dialog.Root'],
+    });
+    assert(ok.content.map((c) => c.text).join('').includes('"valid": true'), 'valid Dialog.Root usage should pass');
+
+    const okInternal = await call('validate_usage', {
+      code: '<DialogRoot defaultOpen={true} modal={true} />',
       componentNames: ['DialogRoot'],
     });
-    assert(ok.content.map((c) => c.text).join('').includes('"valid": true'), 'valid DialogRoot usage should pass');
+    assert(
+      okInternal.content.map((c) => c.text).join('').includes('"valid": true'),
+      'internal-name JSX + component name should validate too',
+    );
 
     const bad = await call('validate_usage', {
-      code: '<DialogRoot defaultOpne={true} />',
-      componentNames: ['DialogRoot'],
+      code: '<Dialog.Root defaultOpne={true} />',
+      componentNames: ['Dialog.Root'],
     });
     assert(bad.isError === true, 'typo prop should be rejected');
     assert(
@@ -195,9 +219,13 @@ function verifyCli() {
   assert(find.status === 0, `find exited ${find.status}: ${find.stderr}`);
   assert(find.stdout.includes('Dialog'), 'find dialog should surface Dialog components');
 
-  const get = run(['get', 'TooltipRoot']);
+  const get = run(['get', 'Tooltip.Root']);
   assert(get.status === 0, `get exited ${get.status}: ${get.stderr}`);
-  assert(get.stdout.includes('onOpenChange'), 'CLI get TooltipRoot should list callbacks');
+  assert(get.stdout.includes('onOpenChange'), 'CLI get Tooltip.Root should list callbacks');
+
+  const getInternal = run(['get', 'TooltipRoot']);
+  assert(getInternal.status === 0, `get by internal name exited ${getInternal.status}: ${getInternal.stderr}`);
+  assert(getInternal.stdout.includes('onOpenChange'), 'CLI get TooltipRoot should resolve to Tooltip.Root');
 
   console.log('  CLI checks passed');
 }

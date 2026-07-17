@@ -60,6 +60,12 @@ function collectPipes(analyses: readonly FileAnalysis[]): FileAnalysis["pipes"] 
 
 function getImportPath(componentName: string): string {
   const config = getLibraryConfig();
+  if ((config.framework ?? "angular") === "react") {
+    // React: root import of the (namespace) symbol — `Dialog.Root` is used
+    // as `import { Dialog } from '<pkg>'` + `<Dialog.Root>`.
+    const symbol = componentName.split(".")[0];
+    return `import { ${symbol} } from '${config.packageName}';`;
+  }
   return `import { ... } from '${config.packageName}/${componentName}';`;
 }
 

@@ -133,9 +133,20 @@ function matchBySelector(input: string, metadata: ComponentMetadataFile): Resolv
 }
 
 function matchBySubstring(input: string, components: string[]): ResolveResult {
-  const normalizedInput = input.toLowerCase().replace(/[-_]/g, "");
+  // "." is stripped so compound React names resolve both ways:
+  // "DialogRoot" ↔ "Dialog.Root".
+  const normalize = (s: string) => s.toLowerCase().replace(/[-_.]/g, "");
+  const normalizedInput = normalize(input);
+
+  // Exact normalized equality wins before substring containment — otherwise
+  // "DialogRoot" is ambiguous between "Dialog.Root" and "AlertDialog.Root".
+  const exact = components.filter((name) => normalize(name) === normalizedInput);
+  if (exact.length === 1) {
+    return { resolved: exact[0] };
+  }
+
   const candidates = components.filter((name) => {
-    const normalizedName = name.toLowerCase().replace(/[-_]/g, "");
+    const normalizedName = normalize(name);
     return normalizedName.includes(normalizedInput) || normalizedInput.includes(normalizedName);
   });
 

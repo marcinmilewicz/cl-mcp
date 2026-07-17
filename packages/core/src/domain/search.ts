@@ -57,7 +57,8 @@ function normalizeQuery(query: string, prefixRegex: RegExp | null): { normalized
   if (prefixRegex) {
     q = q.replace(prefixRegex, "");
   }
-  const words = q.split(/[\s\-_]+/).filter(Boolean);
+  // "." splits compound React names ("Dialog.Root" → dialog, root).
+  const words = q.split(/[\s\-_.]+/).filter(Boolean);
   return { normalized: words.join("-"), words };
 }
 

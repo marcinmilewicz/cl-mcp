@@ -287,6 +287,21 @@ function handleGetComponentsBatch(args: Record<string, unknown>): ToolResponse {
 // ── Validation ─────────────────────────────────────────────────────
 
 /**
+ * Deterministic component-name lookup for validation: exact entry key, else
+ * a UNIQUE match after normalizing case and separators ("DialogRoot" ↔
+ * "Dialog.Root", "org-input" ↔ "OrgInput"). Deliberately narrower than the
+ * full resolver cascade — validation must never silently pick a fuzzy or
+ * semantic guess.
+ */
+function resolveValidationComponentName(name: string): string | null {
+  if (componentExists(name)) return name;
+  const normalize = (s: string) => s.toLowerCase().replace(/[-_.]/g, "");
+  const wanted = normalize(name);
+  const matches = getAvailableComponents().filter((candidate) => normalize(candidate) === wanted);
+  return matches.length === 1 ? matches[0] : null;
+}
+
+/**
  * Pick the library whose metadata contains ALL of the given component names.
  * Explicit choice wins; otherwise exactly one candidate library must match.
  */
@@ -297,13 +312,13 @@ function resolveValidationLibrary(
   if (explicit) return { library: explicit };
 
   const candidates = getLibraryNames().filter((lib) =>
-    withLibrary(lib, () => componentNames.every((name) => componentExists(name))),
+    withLibrary(lib, () => componentNames.every((name) => resolveValidationComponentName(name) !== null)),
   );
   if (candidates.length === 1) return { library: candidates[0] };
   if (candidates.length === 0) {
     // Fall back to libraries containing at least one of the names.
     const partial = getLibraryNames().filter((lib) =>
-      withLibrary(lib, () => componentNames.some((name) => componentExists(name))),
+      withLibrary(lib, () => componentNames.some((name) => resolveValidationComponentName(name) !== null)),
     );
     if (partial.length === 1) return { library: partial[0] };
     return {
@@ -327,11 +342,12 @@ function validateAngularTemplate(template: string, componentNames: string[]): To
   });
 
   for (const compName of componentNames) {
-    if (componentExists(compName)) {
-      const analyses = getComponentAnalysis(compName);
+    const resolved = resolveValidationComponentName(compName);
+    if (resolved) {
+      const analyses = getComponentAnalysis(resolved);
       validator.registerFromAnalysis(analyses);
 
-      const preloaded = getAnalyzedEntry(compName);
+      const preloaded = getAnalyzedEntry(resolved);
       if (preloaded?.inheritance) {
         for (const inh of Object.values(preloaded.inheritance)) {
           validator.registerInheritedProperties(inh.inheritedInputs || [], inh.inheritedOutputs || []);
@@ -359,8 +375,9 @@ function validateAngularTemplate(template: string, componentNames: string[]): To
 function validateReactUsage(code: string, componentNames: string[]): ToolResponse {
   const validator = new JsxValidator();
   for (const compName of componentNames) {
-    if (componentExists(compName)) {
-      validator.registerFromAnalysis(getComponentAnalysis(compName));
+    const resolved = resolveValidationComponentName(compName);
+    if (resolved) {
+      validator.registerFromAnalysis(getComponentAnalysis(resolved));
     }
   }
 

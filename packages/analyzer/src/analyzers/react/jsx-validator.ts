@@ -42,7 +42,14 @@ export class JsxValidator {
         for (const output of component.outputs) {
           outputs.add(output.alias ?? output.name);
         }
-        this.registry.set(component.className, { name: component.className, inputs, outputs });
+        const entry = { name: component.className, inputs, outputs };
+        this.registry.set(component.className, entry);
+        // Compound public name (<Dialog.Root>) differs from the declaration
+        // name (<DialogRoot>) — JSX may use either, register both.
+        const selector = component.metadata.selector;
+        if (selector && String(selector) !== String(component.className)) {
+          this.registry.set(selector, entry);
+        }
       }
     }
   }

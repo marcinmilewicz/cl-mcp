@@ -36,9 +36,10 @@ import type {
   SelectorQuickInfo,
   StorybookExample,
 } from "../../types.js";
-import { asFilePath } from "../../types.js";
+import { asFilePath, asSelector } from "../../types.js";
 import { METADATA_SCHEMA_VERSION } from "../angular/angular-framework-analyzer.js";
 import { ReactAstAnalyzer } from "./react-analyzer.js";
+import { resolveCompoundNames } from "./react-compound-names.js";
 import { extractReactStories } from "./react-storybook-extractor.js";
 
 const EXCLUDED_DIRS = new Set(["node_modules", "dist", ".git", ".storybook", "coverage"]);
@@ -87,7 +88,10 @@ export class ReactFrameworkAnalyzer implements FrameworkAnalyzer {
 
     // ── Per-file analysis → per-component entries ───────────────────────
     interface DetectedComponent {
+      /** Public name — compound (`Dialog.Root`) when a namespace barrel publishes it. */
       name: string;
+      /** Declaration name in source (`DialogRoot`). */
+      internalName: string;
       filePath: string;
       fileAnalysis: FileAnalysis;
       component: ComponentAnalysis;
@@ -101,7 +105,7 @@ export class ReactFrameworkAnalyzer implements FrameworkAnalyzer {
       try {
         const result = analyzer.analyzeFile(filePath);
         for (const component of result.analysis.components) {
-          if (detected.some((d) => d.name === component.className)) {
+          if (detected.some((d) => d.internalName === component.className)) {
             diagnostics.push({
               severity: "warn",
               code: "duplicate-component-name",
@@ -113,15 +117,13 @@ export class ReactFrameworkAnalyzer implements FrameworkAnalyzer {
           }
           detected.push({
             name: component.className,
+            internalName: component.className,
             filePath,
             fileAnalysis: result.analysis,
             component,
             slots: result.slots.get(component.className) ?? [],
             deprecation: result.deprecations.get(component.className),
           });
-          const owners = fileToComponents.get(filePath) ?? [];
-          owners.push(component.className);
-          fileToComponents.set(filePath, owners);
         }
       } catch (err) {
         diagnostics.push({
@@ -133,7 +135,20 @@ export class ReactFrameworkAnalyzer implements FrameworkAnalyzer {
         });
       }
     }
-    console.log(`Detected ${detected.length} components`);
+
+    // ── Compound naming (Dialog.Root) ───────────────────────────────────
+    // Namespace barrels (`export * as Dialog from './index.parts'`) define
+    // the names consumers actually write in JSX — lead with those.
+    const compoundNames = resolveCompoundNames(componentFiles, new Set(detected.map((d) => d.internalName)));
+    const internalToPublic = new Map<string, string>();
+    for (const d of detected) {
+      d.name = compoundNames.get(d.internalName) ?? d.internalName;
+      internalToPublic.set(d.internalName, d.name);
+      const owners = fileToComponents.get(d.filePath) ?? [];
+      owners.push(d.name);
+      fileToComponents.set(d.filePath, owners);
+    }
+    console.log(`Detected ${detected.length} components (${compoundNames.size} with compound names)`);
 
     // ── Import graph (file-level relative imports → owning components) ──
     const importGraph = buildReactImportGraph(detected, fileToComponents, libraryPath, importPrefix);
@@ -180,16 +195,24 @@ export class ReactFrameworkAnalyzer implements FrameworkAnalyzer {
 
     for (const d of detected) {
       const relFile = path.relative(libraryPath, d.filePath);
+      // The public (possibly compound) name is the JSX usage name → selector.
+      // `className` stays the internal declaration name, truthful to source.
       const narrowed: FileAnalysis = {
         ...d.fileAnalysis,
         filePath: asFilePath(relFile),
-        components: [{ ...d.component, filePath: asFilePath(relFile) }],
+        components: [
+          {
+            ...d.component,
+            filePath: asFilePath(relFile),
+            metadata: { ...d.component.metadata, selector: asSelector(d.name) },
+          },
+        ],
       };
       const graphEntry = importGraph.entries.get(d.name);
       const entry: AnalyzedComponentEntry = {
         kind: "analyzed",
         name: d.name,
-        exports: [d.name],
+        exports: [d.internalName],
         files: [relFile],
         analysis: [narrowed],
         dependencies: resolveDependencies(d.name, importGraph),
@@ -224,9 +247,12 @@ export class ReactFrameworkAnalyzer implements FrameworkAnalyzer {
         const resolved = new Set<string>();
         const refs: { selector: string; kind: "element" | "attribute" }[] = [];
         for (const tag of tags) {
-          if (metadata.selectorMap?.[tag]) {
-            resolved.add(tag);
-            refs.push({ selector: tag, kind: "element" });
+          // Stories may use either the compound name (<Dialog.Root>) or the
+          // internal one (<DialogRoot>, direct import) — resolve both.
+          const publicName = metadata.selectorMap?.[tag] ? tag : (internalToPublic.get(tag) ?? null);
+          if (publicName && metadata.selectorMap?.[publicName]) {
+            resolved.add(publicName);
+            refs.push({ selector: publicName, kind: "element" });
           }
         }
         const mutable = example as unknown as {
@@ -360,11 +386,17 @@ function resolveRelativeModule(fromDir: string, spec: string): string | null {
 function resolveStoryOwner(
   metaComponent: string | undefined,
   storyFile: string,
-  detected: ReadonlyArray<{ name: string }>,
+  detected: ReadonlyArray<{ name: string; internalName: string }>,
 ): string | null {
-  if (metaComponent && detected.some((d) => d.name === metaComponent)) return metaComponent;
+  if (metaComponent) {
+    // meta.component references the imported symbol — usually the internal name.
+    const byMeta = detected.find((d) => d.internalName === metaComponent || d.name === metaComponent);
+    if (byMeta) return byMeta.name;
+  }
   const base = path.basename(storyFile).replace(STORY_FILE, "").replace(/[-_.]/g, "").toLowerCase();
-  const match = detected.find((d) => d.name.toLowerCase() === base);
+  const match = detected.find(
+    (d) => d.internalName.toLowerCase() === base || d.name.replace(/\./g, "").toLowerCase() === base,
+  );
   return match ? match.name : null;
 }
 
