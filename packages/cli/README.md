@@ -6,6 +6,15 @@ the MCP server dispatches to, so CLI and MCP output can never drift. Designed
 for LLM agents with shell access — no MCP client required — as much as for
 humans.
 
+## Help is written for agents
+
+`cl-mcp --help` prints the global usage with a **recommended agent workflow**
+(overview → find → get → validate) and the output/exit-code contract.
+`cl-mcp help <command>` (or `cl-mcp <command> --help`) prints detailed,
+example-driven help per command — including the semantics an agent must know
+(e.g. `validate` checks prop *names* not values, spread props skip
+required-prop checks, both `Dialog.Root` and `DialogRoot` name forms resolve).
+
 ## Commands
 
 ```bash

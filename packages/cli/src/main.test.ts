@@ -89,6 +89,39 @@ describe("cl-mcp CLI", () => {
     const res = await run([]);
     expect(res.code).toBe(2);
     expect(res.stdout).toContain("Usage: cl-mcp");
+    expect(res.stdout).toContain("RECOMMENDED AGENT WORKFLOW");
+  });
+
+  it("help <command> prints detailed per-command help with examples", async () => {
+    const validate = await run(["help", "validate"]);
+    expect(validate.code).toBe(0);
+    expect(validate.stdout).toContain("--components");
+    expect(validate.stdout).toContain("spread");
+    expect(validate.stdout).toContain("prop VALUES are not checked");
+
+    const get = await run(["help", "get"]);
+    expect(get.code).toBe(0);
+    expect(get.stdout).toContain("Detail levels");
+    expect(get.stdout).toContain("Dialog.Root");
+  });
+
+  it("<command> --help prints the same per-command help", async () => {
+    const res = await run(["validate", "--help"]);
+    expect(res.code).toBe(0);
+    expect(res.stdout).toContain("reject hallucinated props");
+  });
+
+  it("generate --help documents both single-library and workspace modes without spawning", async () => {
+    const res = await run(["generate", "--help"]);
+    expect(res.code).toBe(0);
+    expect(res.stdout).toContain("--config");
+    expect(res.stdout).toContain("--framework angular|react");
+  });
+
+  it("help with an unknown command exits 2", async () => {
+    const res = await run(["help", "nope"]);
+    expect(res.code).toBe(2);
+    expect(res.stderr).toContain("Unknown command: nope");
   });
 
   it("list-libraries shows both libraries (markdown and JSON)", async () => {

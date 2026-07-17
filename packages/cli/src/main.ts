@@ -37,28 +37,146 @@ const defaultIo: CliIo = {
   err: (text) => process.stderr.write(`${text}\n`),
 };
 
-export const USAGE = `cl-mcp — component library metadata for LLMs and humans
+export const USAGE = `cl-mcp — grounded component-library knowledge for LLM agents and humans
 
 Usage: cl-mcp <command> [options]
+       cl-mcp help <command>      # detailed help with examples (also: <command> --help)
 
 Commands:
-  generate [args...]        Run the analyzer (forwards to cl-mcp-analyze;
-                            single-library flags or --config/--scan/--lib)
-  list-libraries            List loaded libraries [--json]
-  overview                  Library overview / quick reference [--library X] [--json]
-  find [query...]           Search components (no query = list all) [--library X] [--list-all]
-  get <name...>             Component details; multiple names = batch
-                            [--detail api|full|examples|types] [--library X]
-  validate                  Validate a usage snippet against real APIs
-                            (--code "<...>" | --file f | stdin) --components a,b [--library X]
+  list-libraries   What libraries are loaded (names, frameworks, component counts)
+  overview         Quick reference of ALL components — selectors/JSX names + main props
+  find             Search components by name, keyword, or intent ("date picker")
+  get              Full API of one or more components (props, callbacks, slots, types)
+  validate         Check a template/JSX snippet against the REAL component APIs
+  generate         Produce component-metadata.json from library sources (analyzer)
 
-Metadata resolution (query commands):
-  --metadata <path>         component-metadata.json (single library)
-  --data-dir <path>         directory of per-library metadata (multi-library)
-  otherwise: CL_MCP_METADATA_PATH / CL_MCP_DATA_DIR env vars,
-  then cl-mcp.yaml's outputDir (discovered upward from cwd), then ./data.
+RECOMMENDED AGENT WORKFLOW (before writing any component code):
+  1. cl-mcp overview                     # learn what exists
+  2. cl-mcp find "searchable dropdown"   # narrow down by intent
+  3. cl-mcp get Select.Root              # ground the exact API
+  4. cl-mcp validate --components Select.Root --code '<Select.Root ...>'
+     → exit 0 means every prop is real; exit 1 lists what is hallucinated.
 
-Exit codes: 0 = ok, 1 = validation/tool error, 2 = operational error.`;
+Output contract (script/agent friendly):
+  stdout = the result (markdown by default, JSON via --json where supported)
+  stderr = logs and diagnostics only
+  exit 0 = success | 1 = tool rejected (validation failed, unknown component)
+  | 2 = operational error (bad usage, metadata not found)
+
+Metadata resolution (all query commands, first match wins):
+  --metadata <path>   a single component-metadata.json
+  --data-dir <path>   directory with per-library metadata (multi-library mode)
+  CL_MCP_METADATA_PATH / CL_MCP_DATA_DIR environment variables
+  cl-mcp.yaml outputDir (config discovered upward from cwd), then ./data
+
+Component names: use the public name ("Dialog.Root", "mat-button", "button").
+Internal/alternate forms resolve too ("DialogRoot" → Dialog.Root). On
+multi-library data, qualify with the library ("ui:Button") or pass --library.`;
+
+/** Per-command help — written for LLM consumption: exact examples, semantics, pitfalls. */
+export const COMMAND_HELP: Record<string, string> = {
+  "list-libraries": `cl-mcp list-libraries — what metadata is loaded
+
+Usage: cl-mcp list-libraries [--json] [--metadata <path> | --data-dir <path>]
+
+Returns one row per library: name (the qualifier for lib:Name), package,
+framework (angular|react), component count. Start here on multi-library data
+to learn the valid --library values.
+
+Examples:
+  cl-mcp list-libraries --data-dir ./data
+  cl-mcp list-libraries --json          # [{"name":"ui","framework":"react",...}]`,
+
+  overview: `cl-mcp overview — compact reference of every component
+
+Usage: cl-mcp overview [--library <lib>] [--json] [--metadata <path> | --data-dir <path>]
+
+Markdown table: selector/JSX name, type, main props (* = required), outputs,
+notes (slots/deprecated). Multi-library data renders one section per library
+unless --library scopes it. Use this FIRST — it prevents inventing components
+that don't exist. --json returns the raw selector map + import cheatsheet.
+
+Examples:
+  cl-mcp overview --library ui
+  cl-mcp overview --json --metadata ./data/ui/component-metadata.json`,
+
+  find: `cl-mcp find — search components by name, keyword, or intent
+
+Usage: cl-mcp find [query words...] [--library <lib>] [--list-all]
+
+Semantic search over names, selectors, and summaries; returns the top matches
+with match reasons. No query = flat listing of everything (--list-all for a
+compact version). Query can be natural language — synonyms like "dropdown"
+expand to select/autocomplete-style components.
+
+Examples:
+  cl-mcp find date picker
+  cl-mcp find "notification toast" --library ui
+  cl-mcp find --list-all`,
+
+  get: `cl-mcp get — the exact API of one or more components
+
+Usage: cl-mcp get <name...> [--detail api|full|examples|types] [--library <lib>]
+
+THE grounding step: returns every real prop/input (type, required, default,
+literal-union values), callback/output, and content slot. Do NOT guess props —
+if it is not listed here, it does not exist.
+
+Names: public form preferred ("Dialog.Root", "button", "mat-card"); internal
+("DialogRoot") and selector forms resolve too; qualify as "lib:Name" on
+multi-library data. Multiple names = one batched response.
+
+Detail levels:
+  api      (default) strict inputs/outputs/slots reference
+  full     + inheritance, config tokens, related components, README
+  examples usage patterns and Storybook examples
+  types    exported TypeScript types verbatim
+
+Examples:
+  cl-mcp get Dialog.Root
+  cl-mcp get Button forms:input --detail full
+  cl-mcp get select --detail examples`,
+
+  validate: `cl-mcp validate — reject hallucinated props BEFORE returning code
+
+Usage: cl-mcp validate --components <a,b,...> (--code '<...>' | --file <path> | stdin)
+                       [--library <lib>]
+
+Framework-dispatched: JSX validation for React libraries, Angular template
+validation for Angular libraries. Checks prop/input NAMES (with spelling
+suggestions) and required props. List EVERY component used in the snippet in
+--components (comma-separated; both "Dialog.Root" and "DialogRoot" forms work).
+
+Semantics an agent must know:
+  - exit 0 = all props exist; exit 1 = violations listed on stdout
+  - {...spread} props: required-prop checks are skipped for that element
+  - prop VALUES are not checked (variant="nonsense" passes; use \`get\` for
+    the allowed literal values)
+  - unregistered/DOM elements are ignored, never flagged
+
+Examples:
+  cl-mcp validate --components Dialog.Root --code '<Dialog.Root defaultOpen={true} />'
+  cl-mcp validate --components button,card --file snippet.html
+  echo '<Button variant="ghost" />' | cl-mcp validate --components Button`,
+
+  generate: `cl-mcp generate — produce component-metadata.json from sources
+
+Usage: cl-mcp generate [analyzer args...]     (forwards to cl-mcp-analyze)
+
+Single library:
+  cl-mcp generate --framework angular|react --path <src> --package <name>
+                  [--prefix <sel-prefix>] [--storybook <dir>] [--docs <file>]
+                  [--output <file>]
+Workspace (multi-library):
+  cl-mcp generate --config ./cl-mcp.yaml
+  cl-mcp generate --lib libs/ui --lib libs/forms --output-dir ./data
+  cl-mcp generate --scan libs --output-dir ./data
+
+Workspace mode auto-detects each library's framework and writes one metadata
+file per library plus workspace-manifest.json (cross-library import graph).
+React tip: have react + @types/react resolvable from the analyzed sources,
+or prop-type resolution degrades sharply.`,
+};
 
 // ── Argument helpers ────────────────────────────────────────────────
 
@@ -260,18 +378,39 @@ function commandValidate(parsed: ParsedArgs, io: CliIo): number {
 export async function runCli(argv: string[], io: CliIo = defaultIo): Promise<number> {
   const [command, ...rest] = argv;
 
-  if (!command || command === "--help" || command === "help") {
+  if (!command || command === "--help") {
     io.out(USAGE);
     return command ? 0 : 2;
   }
 
+  // `help` / `help <command>` — detailed, example-driven help per command.
+  if (command === "help") {
+    const topic = rest[0];
+    if (topic && COMMAND_HELP[topic]) {
+      io.out(COMMAND_HELP[topic]);
+    } else if (topic) {
+      io.err(`Unknown command: ${topic}\n\n${USAGE}`);
+      return 2;
+    } else {
+      io.out(USAGE);
+    }
+    return 0;
+  }
+
   try {
-    // `generate` forwards argv verbatim (the analyzer CLI has its own parser).
-    if (command === "generate") return commandGenerate(rest);
+    // `generate` forwards argv verbatim (the analyzer CLI has its own parser) —
+    // except --help, which shows our generate help instead of spawning.
+    if (command === "generate") {
+      if (rest.includes("--help")) {
+        io.out(COMMAND_HELP.generate);
+        return 0;
+      }
+      return commandGenerate(rest);
+    }
 
     const parsed = parseCliArgs(rest);
     if (parsed.flags.has("help")) {
-      io.out(USAGE);
+      io.out(COMMAND_HELP[command] ?? USAGE);
       return 0;
     }
 
