@@ -160,9 +160,15 @@ export class ReactAstAnalyzer {
     if (!isExported(statement)) return [];
 
     // export function Button(props: Props) { return <button/> }
+    // Real-world libraries (Base UI et al.) often render through helpers
+    // (`return useRenderElement(...)`) with no JSX literal in the body — the
+    // checker-based return-type fallback catches those.
     if (ts.isFunctionDeclaration(statement) && statement.name) {
       const name = statement.name.getText(sourceFile);
-      if (isComponentName(name) && (containsJsx(statement) || returnsJsxType(statement))) {
+      if (
+        isComponentName(name) &&
+        (containsJsx(statement) || returnsJsxType(statement) || this.returnsJsxPerChecker(statement))
+      ) {
         return [{ name, fn: statement, propsTypeNode: null, jsDocHost: statement, kind: "function" }];
       }
       return [];
@@ -179,7 +185,17 @@ export class ReactAstAnalyzer {
         const fcTypeArg = getFcPropsTypeNode(decl.type);
         const unwrapped = decl.initializer ? unwrapComponentExpression(decl.initializer) : null;
 
-        if (unwrapped && (containsJsx(unwrapped.fn) || returnsJsxType(unwrapped.fn) || fcTypeArg)) {
+        // An exported PascalCase const wrapped in forwardRef()/memo() is a
+        // component regardless of whether the render body contains literal
+        // JSX — the wrapper itself is the signal.
+        if (
+          unwrapped &&
+          (unwrapped.wrappers.length > 0 ||
+            containsJsx(unwrapped.fn) ||
+            returnsJsxType(unwrapped.fn) ||
+            fcTypeArg ||
+            this.returnsJsxPerChecker(unwrapped.fn))
+        ) {
           found.push({
             name,
             fn: unwrapped.fn,
@@ -308,6 +324,28 @@ export class ReactAstAnalyzer {
     };
   }
 
+  /**
+   * Checker-based detection fallback: the function's inferred return type
+   * names a JSX-ish type (`ReactElement`, `ReactNode`, `JSX.Element`, …).
+   * Catches components that render exclusively through helpers and therefore
+   * contain no JSX literal. Degrades to `false` when the checker cannot
+   * resolve the return type (e.g. React types not installed).
+   */
+  private returnsJsxPerChecker(fn: ts.SignatureDeclaration): boolean {
+    const checker = this.checker;
+    if (!checker) return false;
+    try {
+      const signature = checker.getSignatureFromDeclaration(fn);
+      if (!signature) return false;
+      const returnText = checker.typeToString(signature.getReturnType(), undefined, ts.TypeFormatFlags.NoTruncation);
+      // `React.JSX.Element` prints as bare `Element`; the \b guards keep
+      // `HTMLElement`/`SVGElement` (no word boundary before "Element") out.
+      return /\b(?:ReactElement|ReactNode|ReactPortal|JSX\.Element|Element)\b/.test(returnText);
+    } catch {
+      return false;
+    }
+  }
+
   private resolvePropsType(candidate: ComponentCandidate): ts.Type | null {
     const checker = this.checker;
     if (!checker) return null;
@@ -369,9 +407,15 @@ function returnsJsxType(fn: ts.SignatureDeclaration): boolean {
 }
 
 /**
- * Unwrap `memo(...)`, `forwardRef(...)`, `React.memo(React.forwardRef(...))`
- * down to the inner arrow/function expression. Returns null when no function
- * is syntactically reachable (e.g. `memo(SomeIdentifier)`).
+ * Unwrap call wrappers down to the inner arrow/function expression:
+ * `memo(...)`, `forwardRef(...)`, `React.memo(React.forwardRef(...))`, and
+ * ANY custom factory whose first argument is a function (e.g. Base UI's
+ * `fastComponent(function TooltipRoot(...) {...})`).
+ *
+ * Only `memo`/`forwardRef` are recorded in `wrappers` (a component signal by
+ * themselves); unknown factories merely unwrap — the inner function must
+ * still prove itself via JSX / return type / FC annotation. Returns null
+ * when no function is syntactically reachable (e.g. `memo(SomeIdentifier)`).
  */
 function unwrapComponentExpression(
   expr: ts.Expression,
@@ -390,9 +434,17 @@ function unwrapComponentExpression(
     if (ts.isCallExpression(current)) {
       const calleeText = current.expression.getText();
       const callee = calleeText.split(".").pop() ?? calleeText;
-      if ((callee === "memo" || callee === "forwardRef") && current.arguments.length > 0) {
+      const firstArg = current.arguments[0];
+      if (callee === "memo" || callee === "forwardRef") {
+        if (firstArg === undefined) return null;
         wrappers.push(callee);
-        current = current.arguments[0];
+        current = firstArg;
+        continue;
+      }
+      // Unknown factory — descend only when the first argument is visibly a
+      // function; the wrapper itself proves nothing.
+      if (firstArg !== undefined && (ts.isArrowFunction(firstArg) || ts.isFunctionExpression(firstArg))) {
+        current = firstArg;
         continue;
       }
       return null;

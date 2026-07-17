@@ -1,0 +1,16 @@
+{
+  "name": "cl-mcp-example-react-base-ui",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Spike/example: analyze MUI's Base UI (real-world React library) and verify the MCP pipeline",
+  "scripts": {
+    "setup": "npm install && node scripts/clone-source.mjs",
+    "analyze": "node ../../packages/analyzer/dist/cli/generate-metadata.js --framework react --path ./base-ui/packages/react/src --package @base-ui/react --output ./data/base-ui/component-metadata.json",
+    "verify": "node scripts/verify-spike.mjs",
+    "pipeline": "npm run analyze && npm run verify"
+  },
+  "dependencies": {
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0"
+  }
+}

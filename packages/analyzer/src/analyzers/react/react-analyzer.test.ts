@@ -90,6 +90,86 @@ describe("ReactAstAnalyzer — component detection", () => {
     expect(mode?.resolvedValues).toEqual({ values: ["compact", "full"], partial: false });
   });
 
+  it("detects a forwardRef-wrapped component with NO JSX in the body (helper-rendered)", () => {
+    const result = analyze(
+      {
+        "/virt/Root.tsx": `
+          const forwardRef = (x: any) => x;
+          function useRenderElement(tag: string, props: unknown): unknown { return null; }
+          export const CheckboxRoot = forwardRef(function CheckboxRoot(
+            componentProps: { checked?: boolean; disabled: boolean },
+            ref: unknown,
+          ) {
+            return useRenderElement("span", componentProps);
+          });
+        `,
+      },
+      "/virt/Root.tsx",
+    );
+    expect(result.analysis.components.map((c) => c.className)).toEqual(["CheckboxRoot"]);
+    expect(result.analysis.components[0].inputs.map((i) => i.name).sort()).toEqual(["checked", "disabled"]);
+  });
+
+  it("unwraps an unknown factory (fastComponent-style) when the inner function has JSX", () => {
+    const result = analyze(
+      {
+        "/virt/Fast.tsx": `
+          const fastComponent = (fn: any) => fn;
+          export const TooltipRoot = fastComponent(function TooltipRoot(props: { open?: boolean; disabled: boolean }) {
+            return <span data-open={props.open} />;
+          });
+        `,
+      },
+      "/virt/Fast.tsx",
+    );
+    expect(result.analysis.components.map((c) => c.className)).toEqual(["TooltipRoot"]);
+    expect(result.analysis.components[0].inputs.map((i) => i.name).sort()).toEqual(["disabled", "open"]);
+  });
+
+  it("does NOT detect an unknown factory whose inner function lacks any JSX signal", () => {
+    const result = analyze(
+      {
+        "/virt/NotComp.tsx": `
+          const makeThing = (fn: any) => fn;
+          export const Registry = makeThing(function Registry(config: { key: string }) {
+            return config.key.length;
+          });
+        `,
+      },
+      "/virt/NotComp.tsx",
+    );
+    expect(result.analysis.components).toHaveLength(0);
+  });
+
+  it("detects a plain function component via the checker return-type fallback", () => {
+    const result = analyze(
+      {
+        "/virt/Dialog.tsx": `
+          type ReactElement = { __el: true };
+          function renderDialog(props: unknown): ReactElement { return { __el: true }; }
+          export function DialogRoot(props: { open?: boolean; modal: boolean }) {
+            return renderDialog(props);
+          }
+        `,
+      },
+      "/virt/Dialog.tsx",
+    );
+    expect(result.analysis.components.map((c) => c.className)).toEqual(["DialogRoot"]);
+    expect(result.analysis.components[0].inputs.map((i) => i.name).sort()).toEqual(["modal", "open"]);
+  });
+
+  it("does NOT detect a PascalCase function returning a non-JSX type", () => {
+    const result = analyze(
+      {
+        "/virt/Fmt.tsx": `
+          export function Format(props: { x: string }) { return props.x.toUpperCase(); }
+        `,
+      },
+      "/virt/Fmt.tsx",
+    );
+    expect(result.analysis.components).toHaveLength(0);
+  });
+
   it("ignores lowercase functions and functions without JSX", () => {
     const result = analyze(
       {

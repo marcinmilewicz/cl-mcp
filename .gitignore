@@ -8,3 +8,5 @@ data/workspace-manifest.json
 examples/*/node_modules/
 examples/angular-material/components/
 examples/multi-framework/data/
+examples/react-base-ui/base-ui/
+examples/react-base-ui/data/
