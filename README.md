@@ -169,7 +169,7 @@ For Cursor, VS Code with Continue, or other MCP-compatible clients — add the s
 | `find_components` | Search by name, keyword, selector, or intent (semantic search) |
 | `get_component` | Detailed info for one component (`api`/`full`/`examples`/`types` detail levels) |
 | `get_components_batch` | Batch version of `get_component` |
-| `validate_template` | Validate Angular templates against actual component APIs |
+| `validate_template` | Validate Angular templates against actual component APIs (incl. compound-selector hosts like `button[mat-button]`) |
 | `validate_usage` | Framework-dispatched validation: JSX for React libraries, templates for Angular |
 
 Every tool accepts an optional `library` argument; component names accept a

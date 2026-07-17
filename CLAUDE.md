@@ -60,7 +60,7 @@ node packages/cli/dist/index.js get ui:Button --data-dir ./data
 - `src/analyzers/react/react-storybook-extractor.ts` — CSF story parsing (best effort; `usedComponents` only when a `render()` JSX exists).
 - `src/workspace/` — multi-library layer: `config.ts` (`cl-mcp.yaml`, Zod-validated), `framework-detector.ts` (deps → source scan), `library-discovery.ts` (explicit entries + scan dirs; aliases from tsconfig paths → package.json → relative path; NOT coupled to NX), `workspace-orchestrator.ts` (runs the right analyzer per library, writes per-library metadata + manifest with cross-library import graph).
 - `src/shared/import-graph.ts` — Inter-component dependency graphs, storybook co-occurrence, related component suggestions (framework-agnostic).
-- `src/shared/template-validator.ts` — Validates Angular templates against extracted component APIs.
+- `src/shared/template-validator.ts` — Validates Angular templates against extracted component APIs. Selectors are parsed into per-comma clause matchers (`{tag?, attrs[]}`), so compound-selector hosts (`button[mat-button]`, `[a],[b]` lists) are fully validated; a binding is valid if ANY matched API declares it; `:not(...)` matches conservatively (no required-input enforcement from negated clauses).
 - `src/cli/generate-metadata.ts` — CLI dispatcher: single-library mode (`--framework`/`--path`) or workspace mode (`--config`/`--scan`/`--lib`).
 
 ### Core (`packages/core`)

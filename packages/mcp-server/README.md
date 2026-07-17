@@ -280,6 +280,8 @@ Search result formatting: `handleComponentSearch(query, components)` runs the en
 
 Only components the caller names are registered, keeping the validator's "known surface" scoped to the template under review.
 
+Registered selectors are parsed into per-comma clause matchers, so hosts matched only via compound attribute selectors (`<button mat-button>` for `button[mat-button], a[mat-button]`) are fully validated — a binding is valid if ANY matched API (component + host directives) declares it. `:not(...)` clauses match conservatively and don't enforce required inputs.
+
 ---
 
 ## 8. Request Lifecycle (end to end)
