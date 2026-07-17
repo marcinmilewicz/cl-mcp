@@ -1,0 +1,11 @@
+# Multi-framework workspace config for the e2e example.
+# Frameworks are auto-detected (React from .tsx, Angular from @Component);
+# import aliases come from tsconfig.base.json paths.
+outputDir: ./data
+
+libraries:
+  - path: libs/forms
+    prefix: org-
+
+scan:
+  - dir: libs

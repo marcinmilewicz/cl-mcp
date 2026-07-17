@@ -8,7 +8,20 @@ This document explains, step by step, how the MCP server ingests a pre-generated
 
 ## 1. High-Level Model
 
-The server is a **runtime stdio MCP server**. It does not parse any TypeScript or Angular source. At startup it loads a single `component-metadata.json` (produced by `@cl-mcp/analyzer`), validates it through a Zod schema at the trust boundary, derives a runtime `LibraryConfig` from it, and then answers MCP `tools/list`, `tools/call`, `resources/list`, and `resources/read` requests over `StdioServerTransport`.
+The server is a **runtime stdio MCP server**. It does not parse any TypeScript or Angular source. At startup it loads **every resolvable** `component-metadata.json` (produced by `@cl-mcp/analyzer`) into a library registry, validates each through a Zod schema at the trust boundary, derives a per-library `LibraryConfig`, and then answers MCP `tools/list`, `tools/call`, `resources/list`, and `resources/read` requests over `StdioServerTransport`.
+
+### Multi-library mode (v4.2)
+
+A single metadata file (`CL_MCP_METADATA_PATH`) is the single-library mode — behavior identical to the pre-registry server. `CL_MCP_DATA_DIR` (or the `data/` convention) loads **all** `<dir>/<lib>/component-metadata.json` files. In multi-library mode:
+
+- every tool accepts an optional `library` argument; component names accept a `lib:Name` qualifier (`ui:Button`)
+- unqualified names resolve across all libraries — an unambiguous hit wins, ambiguity returns qualified suggestions
+- `get_library_overview` / `find_components` render one section per library when unscoped; resources are registered per library (`cl-mcp://<lib>/quick-reference`)
+- the domain layer still reads a single "active" library (`src/data/registry.ts` — `withLibrary()` switches it per request; handlers are synchronous, so the switch cannot be observed mid-request)
+- `validate_usage` (tool #6) dispatches by the library's framework: JSX validation for React libraries, template validation for Angular; `validate_template` refuses React libraries with a pointer
+- React libraries render binding examples in JSX syntax (`variant={value}`) instead of Angular syntax
+
+The sections below describe the single-library data flow, which is unchanged.
 
 ```
 LLM client (Claude, IDE, etc.)
@@ -54,8 +67,8 @@ CL_MCP_METADATA_PATH=./data/angular-material/component-metadata.json \
 
 ### 2.2 What you cannot configure
 
-- **Transport**: always `StdioServerTransport`. No HTTP / WebSocket.
-- **Tool list**: the 5 tools are hardcoded in `src/protocol/tools.ts`. Not plugin-extensible.
+- **Transport**: always `StdioServerTransport`. No HTTP / WebSocket. (The `@cl-mcp/cli` package drives the same tool handlers over the shell via the side-effect-free `@cl-mcp/mcp-server/lib` export.)
+- **Tool list**: the 6 tools are hardcoded in `src/protocol/tools.ts`. Not plugin-extensible.
 - **Keyword expansions** used by semantic search: hardcoded map in `src/domain/search.ts:204` (`DEFAULT_KEYWORD_EXPANSIONS`). No per-library tuning.
 - **Score weights**: hardcoded in `src/domain/search.ts:31` (`SCORE`).
 - **Template size cap** for `validate_template`: 100,000 characters, hardcoded in `src/protocol/router.ts:118` (`MAX_TEMPLATE_LENGTH`).

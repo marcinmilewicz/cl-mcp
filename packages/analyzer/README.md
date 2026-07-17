@@ -1,8 +1,17 @@
 # How `@cl-mcp/analyzer` Works — A Complete Walkthrough
 
-This document explains, step by step, how the analyzer ingests an Angular component library source tree and produces `component-metadata.json` (schema v4.1 — additive bump from v4.0 adding `StorybookExample.usedComponentRefs` and optional `ContentSlotAnalysis.selectorAlternates`). It covers every configurable option, the full pipeline, each extraction stage, the semantic-relations model, and the output shape.
+This document explains, step by step, how the analyzer ingests an Angular component library source tree and produces `component-metadata.json` (schema v4.2 — additive bump from v4.1 adding top-level `framework` and `libraryName`). It covers every configurable option, the full pipeline, each extraction stage, the semantic-relations model, and the output shape.
 
 > Scope: the analyzer package (`packages/analyzer/`). The MCP server that consumes the JSON is out of scope.
+
+## 0. What's New in v4.2 — Multi-Framework & Multi-Library
+
+The Angular walkthrough below still holds verbatim; v4.2 adds two layers on top:
+
+- **React analyzer** (`src/analyzers/react/`) — `ReactFrameworkAnalyzer` implements the same `FrameworkAnalyzer` interface and emits the same `ComponentMetadataFile` shape with `framework: "react"`: the JSX name is the `selector`, props are `inputs` (required/optional, destructured defaults, literal-union `resolvedValues`, JSDoc), `/^on[A-Z]/` function props are `outputs`, and `children`/ReactNode props become content slots. Component detection covers function/arrow components, `React.FC<P>` annotations, `memo()`/`forwardRef()` wrappers, and class components. DOM props inherited from `@types/react` are filtered by declaration path. `jsx-validator.ts` is the React counterpart of the template validator (spread props deliberately skip required-prop checks). CSF storybook extraction is best-effort: `args` always, `usedComponents` only when a `render()` JSX exists.
+- **Workspace layer** (`src/workspace/`) — multi-library generation driven by `cl-mcp.yaml` (Zod-validated; explicit `libraries` + `scan` dirs with glob excludes) or ad hoc `--lib`/`--scan` flags. Frameworks are auto-detected per directory (package.json deps → decorator/JSX source scan); import aliases come from `tsconfig.base.json` paths → library `package.json` name → relative path. **No NX or other workspace tool is required.** Output: `data/<lib>/component-metadata.json` per library + `workspace-manifest.json` (library list + cross-library import graph from alias and relative-path signals).
+
+CLI dispatch: `--framework angular|react --path …` for a single library; `--config cl-mcp.yaml` / `--scan <dir>` / `--lib <path>` for workspaces.
 
 ---
 
@@ -70,8 +79,7 @@ Argument parsing is in `src/cli/generate-metadata.ts:88` (`parseArgs`). Boolean 
 
 ### 2.2 What You Cannot Configure (Currently)
 
-- **Framework**: only Angular. `FrameworkAnalyzer` (see `src/analyzers/analyzer.interface.ts`) is designed for other frameworks, but no implementations exist.
-- **Component discovery rules**: hard-coded walk of the library path.
+- **Component discovery rules**: hard-coded walk of the library path (Angular: directory-per-component; React: flat file scan).
 - **Selector-filter exclusions**: `test-` and `storybook-` prefix filters are hard-coded.
 - **"Non-component" subpackage list** for the import graph is hard-coded: `core`, `cdk`, `theming`, `prebuilt-themes`, `schematics`, `testing` (see `src/shared/import-graph.ts:22`).
 - **Semantic relations**: there are no keyword maps, synonym lists, or tunable similarity thresholds. Relatedness is computed from imports + Storybook co-occurrence only (see §7).
@@ -440,12 +448,12 @@ Types are branded (`FilePath`, `ClassName`, `Selector`) to prevent cross-mixing 
 
 ```ts
 interface FrameworkAnalyzer {
-  readonly framework: "angular";
-  analyze(libraryPath: string, options: AnalyzerOptions): Promise<ComponentMetadataFile>;
+  readonly framework: "angular" | "react";
+  analyze(libraryPath: string, options?: AnalyzerOptions): Promise<ComponentMetadataFile>;
 }
 ```
 
-This is the seam for future framework support. The current Angular pipeline is orchestrated directly in the CLI and does **not** implement this interface — it uses `AngularAstAnalyzer` as a low-level helper and stitches the stages itself. Adding React/Vue would mean implementing `FrameworkAnalyzer` for real and having the CLI dispatch by `--framework`.
+As of v4.2 this interface is implemented for real by both `AngularFrameworkAnalyzer` (`src/analyzers/angular/angular-framework-analyzer.ts` — owns the full pipeline that previously lived in the CLI) and `ReactFrameworkAnalyzer` (`src/analyzers/react/react-framework-analyzer.ts`). The CLI is a thin dispatcher over an analyzer registry; the workspace orchestrator picks the implementation per library from the detected framework. Adding Vue would mean one more implementation plus a registry entry.
 
 ---
 

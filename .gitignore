@@ -4,5 +4,7 @@ dist/
 .DS_Store
 *.log
 data/*/component-metadata.json
+data/workspace-manifest.json
 examples/*/node_modules/
 examples/angular-material/components/
+examples/multi-framework/data/
