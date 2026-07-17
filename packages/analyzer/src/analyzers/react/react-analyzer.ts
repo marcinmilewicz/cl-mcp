@@ -112,6 +112,11 @@ export class ReactAstAnalyzer {
     const slots = new Map<string, ContentSlotInfo[]>();
     const deprecations = new Map<string, DeprecationInfo>();
 
+    // Names exported via a separate `export { Button, ... }` statement —
+    // the canonical shadcn/ui pattern (`const Button = forwardRef(...);
+    // export { Button }`). Declarations of these names count as exported.
+    const locallyExportedNames = collectLocallyExportedNames(sourceFile);
+
     for (const statement of sourceFile.statements) {
       // Exported interfaces / type aliases / enums → exportedTypes (for detail_level=types).
       if (isExported(statement)) {
@@ -119,7 +124,7 @@ export class ReactAstAnalyzer {
         if (exported) exportedTypes.push(exported);
       }
 
-      const candidates = this.detectComponents(statement, sourceFile);
+      const candidates = this.detectComponents(statement, sourceFile, locallyExportedNames);
       for (const candidate of candidates) {
         try {
           const analysis = this.buildComponentAnalysis(candidate, sourceFile);
@@ -156,8 +161,14 @@ export class ReactAstAnalyzer {
   // Component detection
   // ──────────────────────────────────────────────────────────────────────
 
-  private detectComponents(statement: ts.Statement, sourceFile: ts.SourceFile): ComponentCandidate[] {
-    if (!isExported(statement)) return [];
+  private detectComponents(
+    statement: ts.Statement,
+    sourceFile: ts.SourceFile,
+    locallyExportedNames: ReadonlySet<string>,
+  ): ComponentCandidate[] {
+    const exportedDirectly = isExported(statement);
+    const isNameExported = (name: string) => exportedDirectly || locallyExportedNames.has(name);
+    if (!exportedDirectly && !statementDeclaresAnyOf(statement, locallyExportedNames)) return [];
 
     // export function Button(props: Props) { return <button/> }
     // Real-world libraries (Base UI et al.) often render through helpers
@@ -167,6 +178,7 @@ export class ReactAstAnalyzer {
       const name = statement.name.getText(sourceFile);
       if (
         isComponentName(name) &&
+        isNameExported(name) &&
         (containsJsx(statement) || returnsJsxType(statement) || this.returnsJsxPerChecker(statement))
       ) {
         return [{ name, fn: statement, propsTypeNode: null, jsDocHost: statement, kind: "function" }];
@@ -180,7 +192,7 @@ export class ReactAstAnalyzer {
       for (const decl of statement.declarationList.declarations) {
         if (!ts.isIdentifier(decl.name)) continue;
         const name = decl.name.getText(sourceFile);
-        if (!isComponentName(name)) continue;
+        if (!isComponentName(name) || !isNameExported(name)) continue;
 
         const fcTypeArg = getFcPropsTypeNode(decl.type);
         const unwrapped = decl.initializer ? unwrapComponentExpression(decl.initializer) : null;
@@ -215,7 +227,7 @@ export class ReactAstAnalyzer {
     // export class Button extends React.Component<Props> { ... }
     if (ts.isClassDeclaration(statement) && statement.name) {
       const name = statement.name.getText(sourceFile);
-      if (!isComponentName(name)) return [];
+      if (!isComponentName(name) || !isNameExported(name)) return [];
       const propsTypeNode = getClassComponentPropsTypeNode(statement);
       if (propsTypeNode !== undefined) {
         return [{ name, fn: null, propsTypeNode, jsDocHost: statement, kind: "class" }];
@@ -384,6 +396,38 @@ interface ComponentCandidate {
 function isExported(node: ts.Node): boolean {
   const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
   return !!modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+}
+
+/** Local names published via `export { A, B as C }` (no module specifier). */
+function collectLocallyExportedNames(sourceFile: ts.SourceFile): Set<string> {
+  const names = new Set<string>();
+  for (const statement of sourceFile.statements) {
+    if (
+      ts.isExportDeclaration(statement) &&
+      !statement.moduleSpecifier &&
+      statement.exportClause &&
+      ts.isNamedExports(statement.exportClause)
+    ) {
+      for (const element of statement.exportClause.elements) {
+        if (element.isTypeOnly) continue;
+        names.add((element.propertyName ?? element.name).text);
+      }
+    }
+  }
+  return names;
+}
+
+function statementDeclaresAnyOf(statement: ts.Statement, names: ReadonlySet<string>): boolean {
+  if (names.size === 0) return false;
+  if ((ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) && statement.name) {
+    return names.has(statement.name.text);
+  }
+  if (ts.isVariableStatement(statement)) {
+    return statement.declarationList.declarations.some(
+      (decl) => ts.isIdentifier(decl.name) && names.has(decl.name.text),
+    );
+  }
+  return false;
 }
 
 function isComponentName(name: string): boolean {

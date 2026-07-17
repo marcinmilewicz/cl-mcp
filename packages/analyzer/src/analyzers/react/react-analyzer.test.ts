@@ -141,6 +141,38 @@ describe("ReactAstAnalyzer — component detection", () => {
     expect(result.analysis.components).toHaveLength(0);
   });
 
+  it("detects components published via a separate `export { Button }` statement (shadcn pattern)", () => {
+    const result = analyze(
+      {
+        "/virt/button.tsx": `
+          const forwardRef = (x: any) => x;
+          const Button = forwardRef(({ variant, disabled }: { variant?: "default" | "ghost"; disabled: boolean }) => (
+            <button disabled={disabled} data-variant={variant} />
+          ));
+          const buttonVariants = { default: "", ghost: "" };
+          const helper = () => 1;
+          export { Button, buttonVariants, helper };
+        `,
+      },
+      "/virt/button.tsx",
+    );
+    expect(result.analysis.components.map((c) => c.className)).toEqual(["Button"]);
+    expect(result.analysis.components[0].inputs.map((i) => i.name).sort()).toEqual(["disabled", "variant"]);
+  });
+
+  it("does NOT detect a non-exported component const", () => {
+    const result = analyze(
+      {
+        "/virt/private.tsx": `
+          const Internal = ({ x }: { x: number }) => <div>{x}</div>;
+          export const usePublic = () => Internal;
+        `,
+      },
+      "/virt/private.tsx",
+    );
+    expect(result.analysis.components).toHaveLength(0);
+  });
+
   it("detects a plain function component via the checker return-type fallback", () => {
     const result = analyze(
       {
