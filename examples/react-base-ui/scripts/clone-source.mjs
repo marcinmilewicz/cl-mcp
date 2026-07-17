@@ -16,7 +16,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const exampleRoot = path.resolve(here, '..');
 const target = path.resolve(exampleRoot, 'base-ui');
 const repo = 'https://github.com/mui/base-ui.git';
-const ref = process.env.BASE_UI_REF ?? 'master';
+// Pinned to a release tag — bump deliberately, never track a moving branch.
+const ref = process.env.BASE_UI_REF ?? 'v1.6.0';
 
 if (!existsSync(target)) {
   console.log(`[setup] Sparse-cloning ${repo} (ref: ${ref}) into ${target}`);

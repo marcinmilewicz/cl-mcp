@@ -1,0 +1,12 @@
+{
+  "name": "cl-mcp-example-ng-zorro",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Example: analyze NG-ZORRO (Ant Design for Angular) — second real-world Angular library, validating the analyzer beyond Angular Material conventions",
+  "scripts": {
+    "setup": "node scripts/clone-source.mjs",
+    "analyze": "node ../../packages/analyzer/dist/cli/generate-metadata.js --framework angular --path ./ng-zorro/components --package ng-zorro-antd --prefix nz --import-prefix ng-zorro-antd/ --output ./data/ng-zorro/component-metadata.json --allow-partial",
+    "verify": "node scripts/verify-ngzorro.mjs",
+    "pipeline": "npm run analyze && npm run verify"
+  }
+}

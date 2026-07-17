@@ -1,0 +1,20 @@
+{
+  "name": "cl-mcp-example-react-shadcn",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Example: shadcn/ui-style components living IN your repo (the copy-paste model) analyzed as a component library — cva variants, Radix wrappers, export{} pattern",
+  "scripts": {
+    "setup": "npm install",
+    "analyze": "node ../../packages/analyzer/dist/cli/generate-metadata.js --framework react --path ./src --package @acme/ui --output ./data/shadcn/component-metadata.json",
+    "verify": "node scripts/verify-shadcn.mjs",
+    "pipeline": "npm run analyze && npm run verify"
+  },
+  "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.0",
+    "@types/react": "^19.0.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "react": "^19.0.0",
+    "tailwind-merge": "^3.0.0"
+  }
+}

@@ -203,10 +203,22 @@ npm run example:run      # analyze + verify all MCP tools
 # Mixed React + Angular workspace (multi-library)
 npm run example:multi    # generate from cl-mcp.yaml + verify MCP server & CLI
 
-# Real-world React library (MUI Base UI)
+# Real-world React library (MUI Base UI, pinned tag)
 npm run example:react-setup   # sparse-clone Base UI + install react/@types/react
 npm run example:react         # analyze + verify quality floors, MCP server & CLI
+
+# Second real-world Angular library (NG-ZORRO, pinned tag)
+npm run example:ngzorro-setup
+npm run example:ngzorro       # 83 components, 1044 selectors; validates beyond Material conventions
+
+# shadcn/ui-style in-repo components (committed fixture)
+npm run example:shadcn-setup
+npm run example:shadcn        # cva VariantProps, Radix wrappers, export{} pattern
 ```
+
+Upstream clones are pinned to release tags (`ANGULAR_COMPONENTS_REF`,
+`BASE_UI_REF`, `NG_ZORRO_REF` env vars override) — bump deliberately, never
+track a moving branch.
 
 `examples/multi-framework/` is a committed fixture: `libs/ui` (React, flat
 layout) + `libs/forms` (Angular, directory-per-component) + `tsconfig.base.json`

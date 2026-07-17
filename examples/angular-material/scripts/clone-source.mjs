@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const target = path.resolve(here, '..', 'components');
 const repo = 'https://github.com/angular/components.git';
-const ref = process.env.ANGULAR_COMPONENTS_REF ?? 'main';
+// Pinned to a release tag — bump deliberately, never track a moving branch.
+const ref = process.env.ANGULAR_COMPONENTS_REF ?? 'v22.0.5';
 
 if (existsSync(target)) {
   console.log(`[setup] ${target} already exists — skipping clone.`);

@@ -109,6 +109,12 @@ npm run example:multi    # cl-mcp.yaml generation + MCP multi-library + CLI veri
 # Real-world React library (MUI Base UI — sparse clone, quality floors)
 npm run example:react-setup
 npm run example:react
+
+# NG-ZORRO (second real-world Angular library) and shadcn-style fixture
+npm run example:ngzorro-setup && npm run example:ngzorro
+npm run example:shadcn-setup && npm run example:shadcn
 ```
+
+Upstream clones are pinned to release tags (override via `ANGULAR_COMPONENTS_REF` / `BASE_UI_REF` / `NG_ZORRO_REF`). The shadcn example is a committed fixture (no clone) — it pins the cva `VariantProps`, Radix `ComponentPropsWithoutRef<typeof …>`, and separate-`export {}` detection patterns.
 
 `examples/multi-framework/` is deliberately two different layouts — `libs/ui` (React, flat) and `libs/forms` (Angular, directory-per-component) — so the pipeline is tested against both. Generated `data/` outputs are gitignored in both examples.

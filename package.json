@@ -13,6 +13,10 @@
     "example:multi": "cd examples/multi-framework && npm run pipeline",
     "example:react-setup": "npm run build && cd examples/react-base-ui && npm run setup",
     "example:react": "cd examples/react-base-ui && npm run pipeline",
+    "example:ngzorro-setup": "npm run build && cd examples/ng-zorro && npm run setup",
+    "example:ngzorro": "cd examples/ng-zorro && npm run pipeline",
+    "example:shadcn-setup": "npm run build && cd examples/react-shadcn && npm run setup",
+    "example:shadcn": "cd examples/react-shadcn && npm run pipeline",
     "inspect": "CL_MCP_METADATA_PATH=./data/angular-material/component-metadata.json npx @modelcontextprotocol/inspector node packages/mcp-server/dist/index.js"
   },
   "devDependencies": {

@@ -10,3 +10,6 @@ examples/angular-material/components/
 examples/multi-framework/data/
 examples/react-base-ui/base-ui/
 examples/react-base-ui/data/
+examples/ng-zorro/ng-zorro/
+examples/ng-zorro/data/
+examples/react-shadcn/data/
