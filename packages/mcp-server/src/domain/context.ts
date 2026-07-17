@@ -84,13 +84,19 @@ export function generateQuickContext(): QuickContext {
   };
 }
 
-let cachedQuickContext: QuickContext | null = null;
+// Memoized per library — the active library can be switched per request
+// (multi-library mode), so a single cache slot would leak contexts across
+// libraries.
+const cachedQuickContexts = new Map<string, QuickContext>();
 
 export function getQuickContext(): QuickContext {
-  if (!cachedQuickContext) {
-    cachedQuickContext = generateQuickContext();
+  const key = getLibraryConfig().packageName;
+  let ctx = cachedQuickContexts.get(key);
+  if (!ctx) {
+    ctx = generateQuickContext();
+    cachedQuickContexts.set(key, ctx);
   }
-  return cachedQuickContext;
+  return ctx;
 }
 
 export function formatQuickContextForLLM(): string {
@@ -101,15 +107,15 @@ export function formatQuickContextForLLM(): string {
   let result = `# ${config.packageName} Quick Reference\n\n`;
   result += `**${ctx.totalComponents} components available**\n\n`;
 
-  result += `## CRITICAL RULES\n`;
-  result += `1. ONLY use inputs/outputs listed in the table below - do NOT hallucinate props\n`;
-  result += `2. Use \`validate_template\` tool BEFORE returning any template\n`;
-  result += `3. Check \`get_component\` for full API when unsure\n\n`;
+  result += "## CRITICAL RULES\n";
+  result += "1. ONLY use inputs/outputs listed in the table below - do NOT hallucinate props\n";
+  result += "2. Use `validate_template` tool BEFORE returning any template\n";
+  result += "3. Check `get_component` for full API when unsure\n\n";
 
-  result += `## Selector → Inputs Map\n`;
-  result += `(* = required input)\n\n`;
-  result += `| Selector | Type | Main Inputs | Outputs | Form | Notes |\n`;
-  result += `|----------|------|-------------|---------|------|-------|\n`;
+  result += "## Selector → Inputs Map\n";
+  result += "(* = required input)\n\n";
+  result += "| Selector | Type | Main Inputs | Outputs | Form | Notes |\n";
+  result += "|----------|------|-------------|---------|------|-------|\n";
 
   for (const [selector, info] of Object.entries(ctx.selectorMap)) {
     const inputs = info.mainInputs.join(", ") || "-";
@@ -155,16 +161,16 @@ export function formatQuickContextForLLM(): string {
   }
 
   if (directiveRows.length > 0) {
-    result += `\n## Key Directives\n`;
-    result += `| Directive | Component | Class |\n|-----------|-----------|-------|\n`;
+    result += "\n## Key Directives\n";
+    result += "| Directive | Component | Class |\n|-----------|-----------|-------|\n";
     for (const row of directiveRows) {
       result += `| \`${row.selector}\` | ${row.component} | ${row.className} |\n`;
     }
   }
 
   if (pipeRows.length > 0) {
-    result += `\n## Available Pipes\n`;
-    result += `| Pipe | Component | Class |\n|------|-----------|-------|\n`;
+    result += "\n## Available Pipes\n";
+    result += "| Pipe | Component | Class |\n|------|-----------|-------|\n";
     for (const row of pipeRows) {
       result += `| \`${row.pipeName}\` | ${row.component} | ${row.className} |\n`;
     }

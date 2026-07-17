@@ -37,40 +37,47 @@ function findAncestorWithFile(startDir: string, filename: string, maxDepth = 8):
   return null;
 }
 
-export function resolveMetadataPath(): string {
-  // 1. Direct path via environment variable
+/** Every metadata file found in a data directory (all subdirs + the dir itself). */
+function scanDataDir(dataDir: string): string[] {
+  const found: string[] = [];
+  if (!fs.existsSync(dataDir) || !fs.statSync(dataDir).isDirectory()) return found;
+
+  const entries = fs.readdirSync(dataDir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const candidate = path.join(dataDir, entry.name, METADATA_FILENAME);
+    if (fs.existsSync(candidate)) found.push(candidate);
+  }
+  const direct = path.join(dataDir, METADATA_FILENAME);
+  if (fs.existsSync(direct)) found.push(direct);
+  return found;
+}
+
+/**
+ * Resolve EVERY loadable component-metadata.json. A single result is the
+ * single-library mode; multiple results put the server into multi-library
+ * mode (one registry entry per file).
+ */
+export function resolveAllMetadataPaths(): string[] {
+  // 1. Direct path via environment variable — always single-library.
   if (process.env.CL_MCP_METADATA_PATH) {
     const metadataPath = validateSecurePath('CL_MCP_METADATA_PATH', process.env.CL_MCP_METADATA_PATH);
-    if (fs.existsSync(metadataPath)) {
-      return metadataPath;
+    if (fs.existsSync(metadataPath) && fs.statSync(metadataPath).isFile()) {
+      return [metadataPath];
     }
     // If path is a directory, look for metadata file inside
     const inDir = path.join(metadataPath, METADATA_FILENAME);
     if (fs.existsSync(inDir)) {
-      return inDir;
+      return [inDir];
     }
     throw new Error(`[MCP] Metadata not found at CL_MCP_METADATA_PATH: ${metadataPath}`);
   }
 
-  // 2. Data directory via environment variable
+  // 2. Data directory via environment variable — every library inside.
   if (process.env.CL_MCP_DATA_DIR) {
     const dataDir = validateSecurePath('CL_MCP_DATA_DIR', process.env.CL_MCP_DATA_DIR);
-    // Look for any metadata JSON in the data directory
-    if (fs.existsSync(dataDir) && fs.statSync(dataDir).isDirectory()) {
-      const entries = fs.readdirSync(dataDir, { withFileTypes: true });
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
-        const candidate = path.join(dataDir, entry.name, METADATA_FILENAME);
-        if (fs.existsSync(candidate)) {
-          return candidate;
-        }
-      }
-      // Also check directly in the data dir
-      const direct = path.join(dataDir, METADATA_FILENAME);
-      if (fs.existsSync(direct)) {
-        return direct;
-      }
-    }
+    const found = scanDataDir(dataDir);
+    if (found.length > 0) return found;
   }
 
   // 3. Look for data/ directory relative to workspace root
@@ -79,24 +86,19 @@ export function resolveMetadataPath(): string {
     // Try monorepo root (go up from packages/mcp-server/dist/data/)
     const monorepoRoot = findAncestorWithFile(workspaceRoot, 'vitest.workspace.ts');
     if (monorepoRoot) {
-      const dataDir = path.join(monorepoRoot, 'data');
-      if (fs.existsSync(dataDir) && fs.statSync(dataDir).isDirectory()) {
-        const entries = fs.readdirSync(dataDir, { withFileTypes: true });
-        for (const entry of entries) {
-          if (!entry.isDirectory()) continue;
-          const candidate = path.join(dataDir, entry.name, METADATA_FILENAME);
-          if (fs.existsSync(candidate)) {
-            return candidate;
-          }
-        }
-      }
+      const found = scanDataDir(path.join(monorepoRoot, 'data'));
+      if (found.length > 0) return found;
     }
   }
 
   throw new Error(
-    `[MCP] Component metadata not found. Set CL_MCP_METADATA_PATH to the path of your ${METADATA_FILENAME} file.\n` +
+    `[MCP] Component metadata not found. Set CL_MCP_METADATA_PATH to the path of your ${METADATA_FILENAME} file, ` +
+    `or CL_MCP_DATA_DIR to a directory of per-library metadata.\n` +
     `  Example: CL_MCP_METADATA_PATH=./data/angular-material/${METADATA_FILENAME}`
   );
 }
 
-export const METADATA_PATH: string = resolveMetadataPath();
+/** First resolvable metadata path — legacy single-library entry point. */
+export function resolveMetadataPath(): string {
+  return resolveAllMetadataPaths()[0];
+}

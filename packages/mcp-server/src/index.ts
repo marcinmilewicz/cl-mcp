@@ -11,8 +11,9 @@
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { MCP_SERVER_VERSION, getLibraryConfig } from "./config.js";
-import { METADATA_PATH, loadPreloadedMetadata } from "./data/metadata.js";
+import { MCP_SERVER_VERSION } from "./config.js";
+import { loadPreloadedMetadata } from "./data/metadata.js";
+import { getActiveLibrary, getLibraryNames, withLibrary } from "./data/registry.js";
 import { registerResourceHandlers } from "./protocol/resources.js";
 import { registerToolHandlers } from "./protocol/router.js";
 import { registerToolDefinitions } from "./protocol/tools.js";
@@ -40,11 +41,14 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const config = getLibraryConfig();
-  console.error(`Library: ${config.packageName} v${config.version}`);
-  console.error(`Metadata: ${METADATA_PATH}`);
-  if (config.selectorPrefix) {
-    console.error(`Selector prefix: ${config.selectorPrefix}`);
+  for (const name of getLibraryNames()) {
+    withLibrary(name, () => {
+      const lib = getActiveLibrary();
+      const prefix = lib.config.selectorPrefix ? `, prefix: ${lib.config.selectorPrefix}` : "";
+      console.error(
+        `Library '${name}': ${lib.config.packageName} (${lib.config.framework ?? "angular"}${prefix}) from ${lib.metadataPath}`,
+      );
+    });
   }
 
   const transport = new StdioServerTransport();
