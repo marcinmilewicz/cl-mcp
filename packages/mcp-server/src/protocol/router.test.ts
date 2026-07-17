@@ -8,9 +8,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { analyzeWorkspace } from "@cl-mcp/analyzer";
+import {
+  __resetRegistryForTests,
+  getLibraryNames,
+  isMultiLibrary,
+  loadPreloadedMetadata,
+  resolveLibraryQualifier,
+} from "@cl-mcp/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { loadPreloadedMetadata } from "../data/metadata.js";
-import { __resetRegistryForTests, getLibraryNames, isMultiLibrary, resolveLibraryQualifier } from "../data/registry.js";
 import { registerToolHandlers } from "./router.js";
 
 let root: string;

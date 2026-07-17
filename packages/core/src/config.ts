@@ -1,11 +1,10 @@
 /**
- * MCP Server Configuration
+ * Library Configuration
  *
- * Dynamic configuration that can be derived from metadata or environment.
- * No hardcoded library-specific values.
+ * Dynamic configuration derived from loaded metadata — always describes the
+ * ACTIVE library (see data/registry.ts). No hardcoded library-specific values.
  */
 
-export const MCP_SERVER_VERSION = "1.0.0";
 export const METADATA_FILENAME = "component-metadata.json";
 
 export interface LibraryConfig {

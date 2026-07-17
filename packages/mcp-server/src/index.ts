@@ -2,21 +2,23 @@
 /**
  * @cl-mcp/mcp-server
  *
- * Universal MCP server for component library metadata.
- * Loads pre-generated component-metadata.json and serves tools/resources to LLMs.
+ * MCP protocol (stdio) adapter over @cl-mcp/core. Loads pre-generated
+ * component metadata (one or many libraries) and serves the core's tool
+ * handlers plus quick-reference resources to LLM clients.
  *
  * Usage:
  *   CL_MCP_METADATA_PATH=./data/angular-material/component-metadata.json cl-mcp-server
+ *   CL_MCP_DATA_DIR=./data cl-mcp-server
  */
 
+import { getActiveLibrary, getLibraryNames, loadPreloadedMetadata, withLibrary } from "@cl-mcp/core";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { MCP_SERVER_VERSION } from "./config.js";
-import { loadPreloadedMetadata } from "./data/metadata.js";
-import { getActiveLibrary, getLibraryNames, withLibrary } from "./data/registry.js";
 import { registerResourceHandlers } from "./protocol/resources.js";
 import { registerToolHandlers } from "./protocol/router.js";
 import { registerToolDefinitions } from "./protocol/tools.js";
+
+export const MCP_SERVER_VERSION = "1.0.0";
 
 // Create MCP server
 const server = new Server(

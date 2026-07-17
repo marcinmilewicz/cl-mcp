@@ -1,10 +1,10 @@
 # `@cl-mcp/cli` — MCP tools over the shell
 
-Command-line access to component library metadata. Every query command calls
-the **exact same tool handlers** the MCP server dispatches to (via the
-side-effect-free `@cl-mcp/mcp-server/lib` export), so CLI and MCP output can
-never drift. Designed for LLM agents with shell access — no MCP client
-required — as much as for humans.
+Command-line access to component library metadata. A thin shell adapter over
+`@cl-mcp/core`: every query command calls the **exact same tool handlers**
+the MCP server dispatches to, so CLI and MCP output can never drift. Designed
+for LLM agents with shell access — no MCP client required — as much as for
+humans.
 
 ## Commands
 

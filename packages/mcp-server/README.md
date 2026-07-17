@@ -8,7 +8,7 @@ This document explains, step by step, how the MCP server ingests a pre-generated
 
 ## 1. High-Level Model
 
-The server is a **runtime stdio MCP server**. It does not parse any TypeScript or Angular source. At startup it loads **every resolvable** `component-metadata.json` (produced by `@cl-mcp/analyzer`) into a library registry, validates each through a Zod schema at the trust boundary, derives a per-library `LibraryConfig`, and then answers MCP `tools/list`, `tools/call`, `resources/list`, and `resources/read` requests over `StdioServerTransport`.
+The server is a **runtime stdio MCP server** — a thin protocol adapter over `@cl-mcp/core`, which owns the data layer (`data/`), domain layer (`domain/`), and the tool handlers (`handlers.ts`). Wherever this document references `src/data/…`, `src/domain/…`, or `src/config.ts`, those files live in `packages/core/src/` since the core extraction; the behavior described is unchanged. The server does not parse any TypeScript or Angular source. At startup it loads **every resolvable** `component-metadata.json` (produced by `@cl-mcp/analyzer`) into a library registry, validates each through a Zod schema at the trust boundary, derives a per-library `LibraryConfig`, and then answers MCP `tools/list`, `tools/call`, `resources/list`, and `resources/read` requests over `StdioServerTransport`.
 
 ### Multi-library mode (v4.2)
 
@@ -67,7 +67,7 @@ CL_MCP_METADATA_PATH=./data/angular-material/component-metadata.json \
 
 ### 2.2 What you cannot configure
 
-- **Transport**: always `StdioServerTransport`. No HTTP / WebSocket. (The `@cl-mcp/cli` package drives the same tool handlers over the shell via the side-effect-free `@cl-mcp/mcp-server/lib` export.)
+- **Transport**: always `StdioServerTransport`. No HTTP / WebSocket. (The `@cl-mcp/cli` package drives the same `@cl-mcp/core` tool handlers over the shell.)
 - **Tool list**: the 6 tools are hardcoded in `src/protocol/tools.ts`. Not plugin-extensible.
 - **Keyword expansions** used by semantic search: hardcoded map in `src/domain/search.ts:204` (`DEFAULT_KEYWORD_EXPANSIONS`). No per-library tuning.
 - **Score weights**: hardcoded in `src/domain/search.ts:31` (`SCORE`).

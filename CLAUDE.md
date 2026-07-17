@@ -4,18 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Project Is
 
-cl-mcp is a monorepo that provides an MCP (Model Context Protocol) server for component library metadata. It has three packages:
+cl-mcp is a monorepo that provides an MCP (Model Context Protocol) server for component library metadata. It has four packages:
 
 - **`@cl-mcp/analyzer`** — Build-time AST analysis of component libraries (**Angular and React**). Parses TypeScript/TSX source to extract component metadata (inputs/props, outputs/callbacks, selectors/JSX names, inheritance, content projection, config tokens, deprecation, storybook examples, import graphs). Outputs one `component-metadata.json` per library, plus a `workspace-manifest.json` in multi-library mode.
-- **`@cl-mcp/mcp-server`** — Runtime MCP server that loads pre-generated metadata (one or many libraries) and exposes it to LLMs via MCP tools and resources over stdio transport.
-- **`@cl-mcp/cli`** — `cl-mcp` bin: the same tool handlers as the MCP server, over the shell (for agents without an MCP client, CI, humans). Imports the server's domain via the side-effect-free `@cl-mcp/mcp-server/lib` export.
+- **`@cl-mcp/core`** — Transport-agnostic core: metadata loading (multi-library registry + Zod trust boundary), the search/resolution domain, and the tool handlers (pure `args → ToolResponse` functions, no SDK dependency). Importing it has no side effects.
+- **`@cl-mcp/mcp-server`** — Thin MCP protocol (stdio) adapter over core: registers the tool schemas, routes `tools/call` to core's `TOOL_HANDLERS`, serves per-library quick-reference resources.
+- **`@cl-mcp/cli`** — Thin shell adapter over core: `cl-mcp` bin with the same tool handlers (for agents without an MCP client, CI, humans).
 
 The pipeline: `analyzer CLI → component-metadata.json (per library) + workspace-manifest.json → MCP server / cl-mcp CLI → LLM tools`
 
 ## Commands
 
 ```bash
-npm run build          # Build all packages (tsc, dependency order: analyzer → mcp-server → cli)
+npm run build          # Build all packages (tsc, dependency order: analyzer → core → mcp-server → cli)
 npm test               # Run all tests via vitest
 npm run lint           # Lint with biome
 npm run lint:fix       # Auto-fix lint issues
@@ -61,14 +62,17 @@ node packages/cli/dist/index.js get ui:Button --data-dir ./data
 - `src/shared/template-validator.ts` — Validates Angular templates against extracted component APIs.
 - `src/cli/generate-metadata.ts` — CLI dispatcher: single-library mode (`--framework`/`--path`) or workspace mode (`--config`/`--scan`/`--lib`).
 
-### MCP Server (`packages/mcp-server`)
+### Core (`packages/core`)
 
-Layered architecture:
-- **Protocol layer** (`src/protocol/`) — `tools.ts` defines the 6 MCP tools, `router.ts` dispatches to domain handlers (and owns multi-library resolution: `library` argument, `lib:Name` qualifiers, cross-library component resolution, framework-dispatched validation), `resources.ts` serves per-library quick-reference resources.
+Layered, transport-agnostic:
+- **Application layer** (`src/handlers.ts`) — the 6 tool handlers as pure `args → ToolResponse` functions (`TOOL_HANDLERS`). Owns multi-library resolution: `library` argument, `lib:Name` qualifiers, cross-library component resolution, framework-dispatched validation (JSX vs template).
 - **Domain layer** (`src/domain/`) — `search.ts` (semantic search), `resolver.ts` (name cascade: exact → selector → fuzzy → semantic), `formatters.ts` (output formatting; renders JSX-style binding examples for React libraries), `context.ts` (quick context, memoized per library).
 - **Data layer** (`src/data/`) — `registry.ts` loads EVERY resolvable metadata file and keeps them keyed by library name; domain code reads one "active" library via the legacy accessors in `metadata.ts` and handlers switch it per request with `withLibrary()` (handlers are synchronous, so this is safe). `paths.ts` resolves all metadata paths (`CL_MCP_METADATA_PATH` = single, `CL_MCP_DATA_DIR` = all subdirs) — single file = single-library mode, fully backward compatible. `schema.ts` is the Zod trust boundary.
 - `src/config.ts` — Runtime `LibraryConfig` (name, prefix, packageName, version, framework) for the active library.
-- `src/lib.ts` — side-effect-free export of registry + tool handlers for `@cl-mcp/cli` (the package root boots the stdio server).
+
+### MCP Server (`packages/mcp-server`)
+
+Pure protocol adapter (`src/protocol/`): `tools.ts` defines the 6 MCP tool schemas, `router.ts` routes `tools/call` to core's `TOOL_HANDLERS`, `resources.ts` serves per-library quick-reference resources. `src/index.ts` boots the stdio transport (fail-fast metadata load).
 
 ### MCP Tools Exposed
 
@@ -86,8 +90,8 @@ Every tool accepts an optional `library` argument; component names accept `lib:N
 - **TypeScript ESM** — All packages use `"type": "module"` with Node16 module resolution. Imports must include `.js` extensions.
 - **Biome** for linting/formatting — 2-space indent, 120 char line width, recommended rules. `data/` and `example-code/` are excluded from linting. The repo carries some pre-existing lint errors; keep files you touch clean but don't chase the backlog.
 - **Vitest** for testing — workspace config at root, per-package vitest configs. Analyzer/CLI configs use a 20s `testTimeout` because ts.Program creation in fixtures is slow cold.
-- **No hardcoded library values** in the MCP server — all library-specific behavior (selector prefix, package name, framework) is derived from loaded metadata at runtime.
-- The `mcp-server` has `@cl-mcp/analyzer` as a peer dependency and re-exports its types via `src/types.ts`.
+- **No hardcoded library values** in core/server — all library-specific behavior (selector prefix, package name, framework) is derived from loaded metadata at runtime.
+- `@cl-mcp/core` has `@cl-mcp/analyzer` as a peer dependency and re-exports its types via `src/types.ts`; `mcp-server` and `cli` depend on core and never re-implement domain logic.
 - **React emits Angular-shaped structures** — the React analyzer reuses `FileAnalysis`/`ComponentAnalysis` (JSX name as `selector`, props as `inputs`, callbacks as `outputs`) so the server/formatters need no per-framework branches beyond example rendering and validation dispatch.
 
 ## Example Projects

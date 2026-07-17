@@ -9,8 +9,9 @@ MCP (Model Context Protocol) server for component library metadata. Gives LLMs a
 | Package | Description |
 |---------|-------------|
 | [`@cl-mcp/analyzer`](packages/analyzer/README.md) | Build-time AST analysis of Angular and React component libraries. Parses TypeScript/TSX source and outputs `component-metadata.json` (+ a workspace manifest in multi-library mode). |
-| [`@cl-mcp/mcp-server`](packages/mcp-server/README.md) | Runtime MCP server that loads metadata (one or many libraries) and exposes it to LLMs via MCP tools over stdio. |
-| [`@cl-mcp/cli`](packages/cli/README.md) | `cl-mcp` command-line tool — the same tools as the MCP server, over the shell. For agents without an MCP client, CI, and humans. |
+| `@cl-mcp/core` | Transport-agnostic core: multi-library metadata registry (Zod trust boundary), search/resolution domain, and the tool handlers shared by both frontends. |
+| [`@cl-mcp/mcp-server`](packages/mcp-server/README.md) | Thin MCP protocol adapter over core — serves the tool handlers to LLMs via stdio. |
+| [`@cl-mcp/cli`](packages/cli/README.md) | Thin shell adapter over core — `cl-mcp` bin with the same tools. For agents without an MCP client, CI, and humans. |
 
 ## Quick start
 
@@ -218,16 +219,19 @@ cl-mcp/
 │   │   │   ├── shared/                   # Import graph, template validator, diagnostics
 │   │   │   └── cli/                      # generate-metadata.ts CLI entry point
 │   │   └── package.json
-│   ├── mcp-server/            # @cl-mcp/mcp-server
+│   ├── core/                  # @cl-mcp/core (transport-agnostic)
 │   │   ├── src/
-│   │   │   ├── index.ts                  # Server entry point (stdio transport)
-│   │   │   ├── lib.ts                    # Side-effect-free export for the CLI
+│   │   │   ├── handlers.ts               # Tool handlers (args → ToolResponse, no SDK)
 │   │   │   ├── config.ts                 # Runtime config from metadata
-│   │   │   ├── protocol/                 # MCP tool/resource definitions, routing
-│   │   │   ├── domain/                   # Search, resolver, formatters
+│   │   │   ├── domain/                   # Search, resolver, formatters, context
 │   │   │   └── data/                     # Registry (multi-library), loading, Zod schema
 │   │   └── package.json
-│   └── cli/                   # @cl-mcp/cli (bin: cl-mcp)
+│   ├── mcp-server/            # @cl-mcp/mcp-server (MCP protocol adapter)
+│   │   ├── src/
+│   │   │   ├── index.ts                  # Server entry point (stdio transport)
+│   │   │   └── protocol/                 # MCP tool/resource definitions, routing
+│   │   └── package.json
+│   └── cli/                   # @cl-mcp/cli (bin: cl-mcp, shell adapter)
 ├── examples/angular-material/  # E2E pipeline test (single library)
 ├── examples/multi-framework/   # E2E pipeline test (React + Angular workspace)
 ├── data/                       # Generated metadata (gitignored)

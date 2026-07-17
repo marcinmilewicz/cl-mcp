@@ -3,7 +3,7 @@
   "private": true,
   "workspaces": ["packages/*"],
   "scripts": {
-    "build": "npm run build -w packages/analyzer && npm run build -w packages/mcp-server && npm run build -w packages/cli",
+    "build": "npm run build -w packages/analyzer && npm run build -w packages/core && npm run build -w packages/mcp-server && npm run build -w packages/cli",
     "test": "vitest run",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",

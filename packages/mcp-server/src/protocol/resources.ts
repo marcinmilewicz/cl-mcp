@@ -1,8 +1,12 @@
+import {
+  formatQuickContextForLLM,
+  getLibraryConfig,
+  getLibraryNames,
+  getQuickContext,
+  withLibrary,
+} from "@cl-mcp/core";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { ListResourcesRequestSchema, ReadResourceRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import { getLibraryConfig } from "../config.js";
-import { getLibraryNames, withLibrary } from "../data/registry.js";
-import { formatQuickContextForLLM, getQuickContext } from "../domain/context.js";
 
 export function registerResourceHandlers(server: Server): void {
   server.setRequestHandler(ListResourcesRequestSchema, async () => {

@@ -1,7 +1,7 @@
 /**
  * `cl-mcp` CLI — command-line access to component library metadata.
  *
- * A thin adapter over `@cl-mcp/mcp-server/lib`: every query command calls the
+ * A thin shell adapter over `@cl-mcp/core`: every query command calls the
  * EXACT same tool handlers the MCP server dispatches to, so CLI and MCP
  * output can never drift. Designed for LLM agents with shell access (no MCP
  * client required) as much as for humans.
@@ -25,7 +25,7 @@ import {
   getLibraryNames,
   loadPreloadedMetadata,
   withLibrary,
-} from "@cl-mcp/mcp-server/lib";
+} from "@cl-mcp/core";
 
 export interface CliIo {
   out(text: string): void;
