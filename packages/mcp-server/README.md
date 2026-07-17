@@ -16,6 +16,7 @@ A single metadata file (`CL_MCP_METADATA_PATH`) is the single-library mode — b
 
 - every tool accepts an optional `library` argument; component names accept a `lib:Name` qualifier (`ui:Button`)
 - unqualified names resolve across all libraries — an unambiguous hit wins, ambiguity returns qualified suggestions
+- React compound names (`Dialog.Root`) resolve in both forms — the resolver treats `.` as a strippable separator and prefers exact normalized equality over substring containment, so `DialogRoot` reaches `Dialog.Root` without colliding with `AlertDialog.Root`
 - `get_library_overview` / `find_components` render one section per library when unscoped; resources are registered per library (`cl-mcp://<lib>/quick-reference`)
 - the domain layer still reads a single "active" library (`src/data/registry.ts` — `withLibrary()` switches it per request; handlers are synchronous, so the switch cannot be observed mid-request)
 - `validate_usage` (tool #6) dispatches by the library's framework: JSX validation for React libraries, template validation for Angular; `validate_template` refuses React libraries with a pointer

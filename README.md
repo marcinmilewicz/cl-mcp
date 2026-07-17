@@ -116,7 +116,9 @@ node packages/analyzer/dist/cli/generate-metadata.js \
 
 **Angular** — components, directives, pipes with selectors; inputs (types, defaults, required) and outputs; inheritance chains; content projection slots (`<ng-content>`); config tokens (InjectionToken); deprecation; Storybook examples; inter-component dependency graph.
 
-**React** — exported function/arrow/class components (including `memo()`/`forwardRef()` wrappers and `React.FC<P>` annotations); props via the TypeScript checker (required/optional, destructured defaults, literal-union values, JSDoc); callback props (`/^on[A-Z]/`) as outputs; `children` + ReactNode props as content slots; `@deprecated`; CSF Storybook stories (best effort); import graph.
+**React** — exported function/arrow/class components (including `memo()`/`forwardRef()` wrappers, custom factories like `fastComponent(fn)`, `React.FC<P>` annotations, and helper-rendered components detected via the checker's return type); props via the TypeScript checker (required/optional, destructured defaults, literal-union values, JSDoc); callback props (`/^on[A-Z]/`) as outputs; `children` + ReactNode props as content slots; `@deprecated`; **compound public names** from namespace barrels (`export * as Dialog from './index.parts'` → the component is served as `Dialog.Root`, with the internal `DialogRoot` kept in `exports` and still resolvable); CSF Storybook stories (best effort); import graph.
+
+> For best React results have `react` + `@types/react` resolvable from the analyzed sources (installed in any ancestor directory) — without them prop-type resolution degrades and helper-rendered components go undetected. See `examples/react-base-ui/` for the real-world reference setup (MUI Base UI: 221 components, 97% prop types resolved).
 
 ## Running the MCP server
 
@@ -173,7 +175,9 @@ For Cursor, VS Code with Continue, or other MCP-compatible clients — add the s
 Every tool accepts an optional `library` argument; component names accept a
 `lib:Name` qualifier (e.g. `ui:Button`). Unqualified names resolve across all
 loaded libraries — an unambiguous hit wins, ambiguity returns qualified
-suggestions.
+suggestions. React compound names resolve in both forms: `Dialog.Root` and
+`DialogRoot` reach the same component, and `validate_usage` accepts both
+`<Dialog.Root>` and `<DialogRoot>` JSX tags.
 
 **Recommended flow:** `get_library_overview` → `find_components` → `get_component` → `validate_usage`
 
@@ -198,6 +202,10 @@ npm run example:run      # analyze + verify all MCP tools
 
 # Mixed React + Angular workspace (multi-library)
 npm run example:multi    # generate from cl-mcp.yaml + verify MCP server & CLI
+
+# Real-world React library (MUI Base UI)
+npm run example:react-setup   # sparse-clone Base UI + install react/@types/react
+npm run example:react         # analyze + verify quality floors, MCP server & CLI
 ```
 
 `examples/multi-framework/` is a committed fixture: `libs/ui` (React, flat

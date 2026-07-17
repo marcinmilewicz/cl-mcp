@@ -20,7 +20,10 @@ cl-mcp validate --components input --file snippet.html   # or pipe via stdin
 
 `validate` dispatches by the library's framework: JSX validation for React
 libraries, Angular template validation for Angular libraries. Component names
-accept a `lib:Name` qualifier on multi-library data.
+accept a `lib:Name` qualifier on multi-library data, and React compound names
+work in both forms — `cl-mcp get Dialog.Root` and `cl-mcp get DialogRoot`
+reach the same component; `validate` accepts both `<Dialog.Root>` and
+`<DialogRoot>` tags.
 
 ## Contract
 

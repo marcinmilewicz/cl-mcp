@@ -53,8 +53,9 @@ node packages/cli/dist/index.js get ui:Button --data-dir ./data
 - `src/analyzers/analyzer.interface.ts` — `FrameworkAnalyzer` interface; both framework pipelines implement it and the CLI dispatches via a registry.
 - `src/analyzers/angular/angular-analyzer.ts` — Core Angular AST analyzer (TypeScript compiler API): components, directives, pipes, services, inputs, outputs, inheritance, content projection, deprecation, config tokens.
 - `src/analyzers/angular/angular-framework-analyzer.ts` — Angular `FrameworkAnalyzer`: full pipeline orchestration (discovery → ts.Program → per-component analysis → selector map → storybook token resolution → related components).
-- `src/analyzers/react/react-analyzer.ts` — React AST core: detects function/arrow/class components (incl. `memo`/`forwardRef`/`React.FC<P>`), extracts props via the TypeChecker (required/defaults/literal unions/JSDoc), classifies `/^on[A-Z]/` callbacks as outputs, `children`/ReactNode props as slots. Emits the SAME `FileAnalysis` shapes as Angular so all consumers work unchanged.
-- `src/analyzers/react/react-framework-analyzer.ts` — React `FrameworkAnalyzer` (flat file discovery, entry per component keyed by JSX name).
+- `src/analyzers/react/react-analyzer.ts` — React AST core: detects function/arrow/class components (incl. `memo`/`forwardRef`/`React.FC<P>`, custom factories like `fastComponent(fn)`, and helper-rendered components via the checker's return type — needs `@types/react` resolvable for full quality), extracts props via the TypeChecker (required/defaults/literal unions/JSDoc), classifies `/^on[A-Z]/` callbacks as outputs, `children`/ReactNode props as slots. Emits the SAME `FileAnalysis` shapes as Angular so all consumers work unchanged.
+- `src/analyzers/react/react-framework-analyzer.ts` — React `FrameworkAnalyzer` (flat file discovery, entry per component keyed by its PUBLIC JSX name).
+- `src/analyzers/react/react-compound-names.ts` — compound naming: namespace barrels (`export * as Dialog from './index.parts'` + `export { DialogRoot as Root }`) rename entries/selectors to `Dialog.Root`; `className`/`exports` keep the internal `DialogRoot`. Purely syntactic.
 - `src/analyzers/react/jsx-validator.ts` — JSX usage validation (unknown/missing-required props, Levenshtein suggestions, spread-aware).
 - `src/analyzers/react/react-storybook-extractor.ts` — CSF story parsing (best effort; `usedComponents` only when a `render()` JSX exists).
 - `src/workspace/` — multi-library layer: `config.ts` (`cl-mcp.yaml`, Zod-validated), `framework-detector.ts` (deps → source scan), `library-discovery.ts` (explicit entries + scan dirs; aliases from tsconfig paths → package.json → relative path; NOT coupled to NX), `workspace-orchestrator.ts` (runs the right analyzer per library, writes per-library metadata + manifest with cross-library import graph).
@@ -93,6 +94,7 @@ Every tool accepts an optional `library` argument; component names accept `lib:N
 - **No hardcoded library values** in core/server — all library-specific behavior (selector prefix, package name, framework) is derived from loaded metadata at runtime.
 - `@cl-mcp/core` has `@cl-mcp/analyzer` as a peer dependency and re-exports its types via `src/types.ts`; `mcp-server` and `cli` depend on core and never re-implement domain logic.
 - **React emits Angular-shaped structures** — the React analyzer reuses `FileAnalysis`/`ComponentAnalysis` (JSX name as `selector`, props as `inputs`, callbacks as `outputs`) so the server/formatters need no per-framework branches beyond example rendering and validation dispatch.
+- **Compound names resolve in both forms** — core's resolver strips `.` alongside `-`/`_` and prefers exact normalized equality over substring containment (so `DialogRoot` → `Dialog.Root`, never ambiguous with `AlertDialog.Root`); validation uses a deliberately narrower deterministic lookup (exact → unique normalized match, no fuzzy/semantic guessing); `JsxValidator` registers both the compound selector and the internal className.
 
 ## Example Projects
 
@@ -103,6 +105,10 @@ npm run example:run      # analyze + verify all 6 MCP tools
 
 # Mixed React + Angular workspace (committed fixture)
 npm run example:multi    # cl-mcp.yaml generation + MCP multi-library + CLI verification
+
+# Real-world React library (MUI Base UI — sparse clone, quality floors)
+npm run example:react-setup
+npm run example:react
 ```
 
 `examples/multi-framework/` is deliberately two different layouts — `libs/ui` (React, flat) and `libs/forms` (Angular, directory-per-component) — so the pipeline is tested against both. Generated `data/` outputs are gitignored in both examples.
