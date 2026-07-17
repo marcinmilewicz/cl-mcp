@@ -9,7 +9,7 @@ cl-mcp is a monorepo that provides an MCP (Model Context Protocol) server for co
 - **`@cl-mcp/analyzer`** — Build-time AST analysis of component libraries (**Angular and React**). Parses TypeScript/TSX source to extract component metadata (inputs/props, outputs/callbacks, selectors/JSX names, inheritance, content projection, config tokens, deprecation, storybook examples, import graphs). Outputs one `component-metadata.json` per library, plus a `workspace-manifest.json` in multi-library mode.
 - **`@cl-mcp/core`** — Transport-agnostic core: metadata loading (multi-library registry + Zod trust boundary), the search/resolution domain, and the tool handlers (pure `args → ToolResponse` functions, no SDK dependency). Importing it has no side effects.
 - **`@cl-mcp/mcp-server`** — Thin MCP protocol (stdio) adapter over core: registers the tool schemas, routes `tools/call` to core's `TOOL_HANDLERS`, serves per-library quick-reference resources.
-- **`@cl-mcp/cli`** — Thin shell adapter over core: `cl-mcp` bin with the same tool handlers (for agents without an MCP client, CI, humans).
+- **`@cl-mcp/cli`** — Thin shell adapter over core: `cl-mcp` bin with the same tool handlers (for agents without an MCP client, CI, humans). Two-level LLM-oriented help: `cl-mcp --help` (recommended workflow + output/exit-code contract) and `cl-mcp help <command>` / `<command> --help` (example-driven per-command help with usage semantics); help texts live in `COMMAND_HELP` in `packages/cli/src/main.ts` — keep them in sync when changing command behavior.
 
 The pipeline: `analyzer CLI → component-metadata.json (per library) + workspace-manifest.json → MCP server / cl-mcp CLI → LLM tools`
 

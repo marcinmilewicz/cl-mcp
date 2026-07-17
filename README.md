@@ -190,7 +190,14 @@ node packages/cli/dist/index.js validate --components Button --code '<Button dis
 ```
 
 Same handlers as the MCP tools; markdown to stdout, logs to stderr, exit
-codes `0`/`1`/`2` (ok / tool rejected / operational error). See
+codes `0`/`1`/`2` (ok / tool rejected / operational error).
+
+Help is written for agents: `cl-mcp --help` leads with the recommended
+workflow (`overview → find → get → validate`) and the output/exit-code
+contract; `cl-mcp help <command>` (or `<command> --help`) prints detailed,
+example-driven help including the semantics an agent must know (validate
+checks prop *names* not values, spread props skip required-prop checks,
+`Dialog.Root` ≡ `DialogRoot`). See
 [`packages/cli/README.md`](packages/cli/README.md).
 
 ## End-to-end examples
