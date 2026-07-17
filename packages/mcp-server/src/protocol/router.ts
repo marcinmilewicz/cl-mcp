@@ -35,7 +35,7 @@ import { JsxValidator, TemplateValidator, formatValidationResult } from "../type
 
 type DetailLevel = "api" | "full" | "examples" | "types";
 
-interface ToolResponse {
+export interface ToolResponse {
   content: Array<{ type: "text"; text: string }>;
   isError?: true;
 }
@@ -434,7 +434,7 @@ function handleValidateUsage(args: Record<string, unknown>): ToolResponse {
 
 // ── Dispatch table & registration ─────────────────────────────────
 
-const TOOL_HANDLERS: Record<string, (args: Record<string, unknown>) => ToolResponse> = {
+export const TOOL_HANDLERS: Record<string, (args: Record<string, unknown>) => ToolResponse> = {
   get_library_overview: handleLibraryOverview,
   find_components: handleFindComponents,
   get_component: handleGetComponent,
