@@ -185,9 +185,55 @@ const builtInPipeArity: Readonly<Record<string, readonly [number, number]>> = {
 // Template Validator Class
 // ============================================================================
 
+/**
+ * One comma-clause of a CSS selector, reduced to what template validation
+ * needs: a tag requirement and required attribute names. `hadNegation` marks
+ * clauses that contained `:not(...)` — those match conservatively (the
+ * negation is ignored), so required-input enforcement is skipped for them.
+ */
+interface SelectorClauseMatcher {
+  tag: string | null;
+  attrs: readonly string[];
+  hadNegation: boolean;
+  api: StrictComponentAPI;
+}
+
+/** Split a selector list on top-level commas (not inside `[]` / `()`). */
+function splitSelectorList(selector: string): string[] {
+  const clauses: string[] = [];
+  let depth = 0;
+  let current = "";
+  for (const ch of selector) {
+    if (ch === "[" || ch === "(") depth++;
+    else if (ch === "]" || ch === ")") depth--;
+    if (ch === "," && depth === 0) {
+      clauses.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  clauses.push(current);
+  return clauses.map((c) => c.trim()).filter(Boolean);
+}
+
+/** Parse one clause into `{tag, attrs, hadNegation}`; null when unusable. */
+function parseSelectorClause(clause: string): Omit<SelectorClauseMatcher, "api"> | null {
+  let s = clause.trim();
+  const hadNegation = s.includes(":not(");
+  s = s.replace(/:not\([^)]*\)/g, "");
+  const attrs = Array.from(s.matchAll(/\[([^\]=]+)(?:=[^\]]*)?\]/g)).map((m) => m[1].trim());
+  const tagText = s.replace(/\[[^\]]*\]/g, "").trim();
+  const tag = /^[A-Za-z][\w-]*$/.test(tagText) ? tagText : null;
+  if (!tag && attrs.length === 0) return null;
+  return { tag, attrs, hadNegation };
+}
+
 export class TemplateValidator {
   private componentAPIs: Map<string, StrictComponentAPI> = new Map();
   private directiveAPIs: Map<string, StrictComponentAPI> = new Map();
+  /** Clause matchers for compound selectors (`button[mat-button]`, comma lists). */
+  private compoundMatchers: SelectorClauseMatcher[] = [];
   private registeredPipes: Set<string> = new Set();
   private readonly selectorPrefix: string;
   private readonly libraryName: string;
@@ -217,7 +263,7 @@ export class TemplateValidator {
     for (const analysis of analyses) {
       for (const component of analysis.components) {
         const api = buildStrictAPIFromAnalysis(component);
-        this.componentAPIs.set(api.selector, api);
+        this.registerSelector(api);
         if (this.selectorPrefix && api.selector.startsWith(this.selectorPrefix)) {
           this.componentAPIs.set(api.selector.slice(this.selectorPrefix.length), api);
         }
@@ -226,14 +272,7 @@ export class TemplateValidator {
       for (const directive of analysis.directives) {
         const api = buildStrictAPIFromAnalysis(directive);
         if (!api.selector) continue;
-
-        // Parse attribute selectors: `[impTooltip]` → `impTooltip`.
-        const attrMatch = api.selector.match(/^\[(\w[\w-]*)\]$/);
-        if (attrMatch) {
-          this.directiveAPIs.set(attrMatch[1], api);
-        } else {
-          this.componentAPIs.set(api.selector, api);
-        }
+        this.registerSelector(api);
       }
 
       for (const pipe of analysis.pipes || []) {
@@ -242,6 +281,74 @@ export class TemplateValidator {
         }
       }
     }
+  }
+
+  /**
+   * Register an API under every form its selector can match in a template:
+   * the raw string (back-compat / `getRegisteredSelectors`), plain element
+   * tags per comma clause, attribute-directive names, and clause matchers
+   * for compound selectors like `button[mat-button], a[mat-button]`.
+   */
+  private registerSelector(api: StrictComponentAPI): void {
+    this.componentAPIs.set(api.selector, api);
+
+    for (const clauseText of splitSelectorList(api.selector)) {
+      const clause = parseSelectorClause(clauseText);
+      if (!clause) continue;
+
+      if (clause.attrs.length === 0 && clause.tag) {
+        // Plain element clause (`mat-card`) — direct tag lookup.
+        this.componentAPIs.set(clause.tag, api);
+        continue;
+      }
+
+      // Attribute-bearing clause — matched structurally at validate time.
+      this.compoundMatchers.push({ ...clause, api });
+      if (!clause.tag && clause.attrs.length === 1) {
+        // Pure attribute selector (`[matTooltip]`) — also an attribute
+        // directive that can sit on any host element.
+        this.directiveAPIs.set(clause.attrs[0], api);
+      }
+    }
+  }
+
+  /**
+   * Resolve every API matching an element: exact tag lookup first, then
+   * compound clause matchers (tag equal or absent AND every selector
+   * attribute present on the element). Returns the deduped APIs, the subset
+   * that may enforce required inputs (negated clauses match conservatively,
+   * so they don't), and the selector attributes that did the matching (those
+   * are not typos).
+   */
+  private resolveElementApis(binding: ElementBinding): {
+    apis: StrictComponentAPI[];
+    requiredFrom: StrictComponentAPI[];
+    matchedAttrs: Set<string>;
+  } {
+    const apis: StrictComponentAPI[] = [];
+    const requiredFrom = new Set<StrictComponentAPI>();
+    const matchedAttrs = new Set<string>();
+
+    const exact = this.componentAPIs.get(binding.tagName);
+    if (exact) {
+      apis.push(exact);
+      requiredFrom.add(exact);
+    }
+
+    const present = new Set<string>([
+      ...binding.attributes.map((a) => a.name),
+      ...binding.directiveAttrs.map((a) => a.name),
+    ]);
+
+    for (const matcher of this.compoundMatchers) {
+      if (matcher.tag && matcher.tag !== binding.tagName) continue;
+      if (!matcher.attrs.every((attr) => present.has(attr))) continue;
+      if (!apis.includes(matcher.api)) apis.push(matcher.api);
+      if (!matcher.hadNegation) requiredFrom.add(matcher.api);
+      for (const attr of matcher.attrs) matchedAttrs.add(attr);
+    }
+
+    return { apis, requiredFrom: [...requiredFrom].filter((api) => apis.includes(api)), matchedAttrs };
   }
 
   /**
@@ -389,9 +496,12 @@ export class TemplateValidator {
     const bindings = this.extractBindings(parsed.nodes);
 
     for (const binding of bindings) {
-      const api = this.componentAPIs.get(binding.tagName);
+      // Every API active on this element: exact tag match + compound-selector
+      // clauses (`button[mat-button]`). A binding is valid if ANY of them
+      // declares it — components and attribute directives share the host.
+      const { apis, requiredFrom, matchedAttrs } = this.resolveElementApis(binding);
 
-      if (!api) {
+      if (apis.length === 0) {
         if (this.selectorPrefix && binding.tagName.startsWith(this.selectorPrefix)) {
           errors.push({
             type: "unknown-element",
@@ -406,10 +516,12 @@ export class TemplateValidator {
         continue;
       }
 
+      const availableInputNames = [...new Set(apis.flatMap((a) => a.availableInputs.map((i) => i.name)))];
+      const availableOutputNames = [...new Set(apis.flatMap((a) => a.availableOutputs.map((o) => o.name)))];
+
       // Inputs
       for (const input of binding.inputs) {
-        const validInput = api.availableInputs.find((i) => i.name === input.name);
-        if (validInput) continue;
+        if (availableInputNames.includes(input.name)) continue;
 
         // Might be a directive selector itself, or an input on a directive
         // active on this host.
@@ -421,8 +533,7 @@ export class TemplateValidator {
         const isAngularDirective = angularDirectives.has(input.name);
 
         if (!isDirectiveSelector && !isDirectiveInput && !isAngularDirective) {
-          const availableNames = api.availableInputs.map((i) => i.name);
-          const similar = this.findSimilar(input.name, availableNames);
+          const similar = this.findSimilar(input.name, availableInputNames);
           errors.push({
             type: "unknown-input",
             message: `Input [${input.name}] does not exist on <${binding.tagName}>`,
@@ -430,7 +541,7 @@ export class TemplateValidator {
             element: binding.tagName,
             suggestion: similar
               ? `Did you mean [${similar}]?`
-              : `Available inputs: ${availableNames.join(", ") || "none"}`,
+              : `Available inputs: ${availableInputNames.join(", ") || "none"}`,
             ...(input.sourceSpan ? { sourceSpan: input.sourceSpan } : {}),
           });
         }
@@ -438,8 +549,7 @@ export class TemplateValidator {
 
       // Outputs
       for (const output of binding.outputs) {
-        const validOutput = api.availableOutputs.find((o) => o.name === output.name);
-        if (validOutput) continue;
+        if (availableOutputNames.includes(output.name)) continue;
 
         const isDirectiveOutput = binding.directiveAttrs.some((dirAttr) => {
           const dirApi = this.directiveAPIs.get(dirAttr.name);
@@ -449,17 +559,16 @@ export class TemplateValidator {
         // Two-way bindings synthesize `<prop>Change` outputs; if the matching
         // input exists on the API, the output pair is implicit-valid.
         const pairedInput = output.name.endsWith("Change")
-          ? api.availableInputs.find((i) => i.name === output.name.slice(0, -"Change".length))
-          : undefined;
+          ? availableInputNames.includes(output.name.slice(0, -"Change".length))
+          : false;
 
         if (!isDirectiveOutput && !isAngularDirective && !pairedInput) {
-          const availableNames = api.availableOutputs.map((o) => o.name);
           errors.push({
             type: "unknown-output",
             message: `Output (${output.name}) does not exist on <${binding.tagName}>`,
             property: output.name,
             element: binding.tagName,
-            suggestion: `Available outputs: ${availableNames.join(", ") || "none"}`,
+            suggestion: `Available outputs: ${availableOutputNames.join(", ") || "none"}`,
             ...(output.sourceSpan ? { sourceSpan: output.sourceSpan } : {}),
           });
         }
@@ -470,8 +579,9 @@ export class TemplateValidator {
         if (this.isCommonHtmlAttribute(attr.name)) continue;
         if (this.isAngularDirective(attr.name)) continue;
         if (this.directiveAPIs.has(attr.name)) continue; // attribute directive selector
+        if (matchedAttrs.has(attr.name)) continue; // part of a matched compound selector
 
-        const matchingInput = api.availableInputs.find((i) => i.name === attr.name);
+        const matchingInput = apis.flatMap((a) => a.availableInputs).find((i) => i.name === attr.name);
         if (matchingInput) {
           if (matchingInput.type !== "string" && !attr.value.includes("{{")) {
             suggestions.push(`Consider using [${attr.name}] binding for non-string input on <${binding.tagName}>`);
@@ -479,10 +589,7 @@ export class TemplateValidator {
           continue;
         }
 
-        const similar = this.findSimilar(
-          attr.name,
-          api.availableInputs.map((i) => i.name),
-        );
+        const similar = this.findSimilar(attr.name, availableInputNames);
         if (similar) {
           errors.push({
             type: "unknown-input",
@@ -495,18 +602,21 @@ export class TemplateValidator {
         }
       }
 
-      // Required inputs
-      for (const requiredInput of api.availableInputs.filter((i) => i.required)) {
-        const providedAsBinding = binding.inputs.some((i) => i.name === requiredInput.name);
-        const providedAsAttribute = binding.attributes.some((a) => a.name === requiredInput.name);
-        if (!providedAsBinding && !providedAsAttribute) {
-          errors.push({
-            type: "missing-required",
-            message: `Required input [${requiredInput.name}] is missing on <${binding.tagName}>`,
-            property: requiredInput.name,
-            element: binding.tagName,
-            ...(binding.sourceSpan ? { sourceSpan: binding.sourceSpan } : {}),
-          });
+      // Required inputs — enforced per API whose selector clause matched
+      // without a `:not(...)` (negated clauses match conservatively).
+      for (const api of requiredFrom) {
+        for (const requiredInput of api.availableInputs.filter((i) => i.required)) {
+          const providedAsBinding = binding.inputs.some((i) => i.name === requiredInput.name);
+          const providedAsAttribute = binding.attributes.some((a) => a.name === requiredInput.name);
+          if (!providedAsBinding && !providedAsAttribute) {
+            errors.push({
+              type: "missing-required",
+              message: `Required input [${requiredInput.name}] is missing on <${binding.tagName}>`,
+              property: requiredInput.name,
+              element: binding.tagName,
+              ...(binding.sourceSpan ? { sourceSpan: binding.sourceSpan } : {}),
+            });
+          }
         }
       }
 

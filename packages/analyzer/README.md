@@ -305,6 +305,8 @@ Only after this post-pass can `buildStorybookCooccurrences()` and `findRelatedCo
 
 This is a separate capability (exposed to the MCP server, not part of metadata generation). Given a template string and the registered component APIs, it:
 
+> **Compound selectors** — registered selectors are parsed into per-comma clause matchers (`{tag?, attrs[]}`), so elements matched only via attribute clauses (`button[mat-button]`, `a[mat-button]`, `[a],[b]` lists) are fully validated: a binding is valid if ANY matching API (component + host directives) declares it. `:not(...)` groups are ignored for matching (conservative over-match), and clauses that contained one do not enforce required inputs.
+
 1. Parses the template with `@angular/compiler.parseTemplate` (via the shared `TemplateParseCache`) and walks the R3 AST to collect per-element bindings: `[input]`, `[(twoWay)]` (deduped against its synthesized `Change` event), `(output)`, `TextAttribute`s, and attribute-directive selector candidates. Angular 17+ control-flow (`@if` / `@for` / `@switch` / `@defer`) and legacy structural directives (`*ngIf` / `*ngFor`, surfaced as `TmplAstTemplate` hosts) are descended.
 2. Checks each binding against the component's inputs/outputs and the registered directive inputs/outputs. Every diagnostic carries an optional `sourceSpan: { line, column, length }` derived from the parser.
 3. Produces fuzzy-match suggestions using **Levenshtein distance ≤ 3**.

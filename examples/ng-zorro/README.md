@@ -34,9 +34,6 @@ selectors (`<nz-alert nzTyppe=…>` → rejected).
 
 ## Known limits (honest)
 
-- Compound attribute selectors (`button[nz-button]`) inherit the pre-existing
-  template-validator gap: bindings on elements matched only via attribute
-  selectors may not be validated.
 - `@WithConfig()` defaults are not modeled as config tokens (ng-zorro uses a
   decorator + `NzConfigService`, not the InjectionToken naming convention the
   config-token pass targets).

@@ -151,6 +151,26 @@ async function verifyServer() {
     });
     assert(bad.isError === true, 'typo input on nz-alert should be rejected');
 
+    // Compound attribute selectors (`button[nz-button]`): bindings on hosts
+    // matched only via the attribute clause are validated too.
+    const compoundOk = await call('validate_template', {
+      template: '<button nz-button [nzType]="t">Save</button>',
+      componentNames: ['button'],
+    });
+    assert(
+      compoundOk.content.map((c) => c.text).join('').includes('"valid": true'),
+      'valid binding on button[nz-button] should pass',
+    );
+    const compoundBad = await call('validate_template', {
+      template: '<button nz-button [nzTyppe]="t">Save</button>',
+      componentNames: ['button'],
+    });
+    assert(compoundBad.isError === true, 'typo input on button[nz-button] should be rejected');
+    assert(
+      compoundBad.content.map((c) => c.text).join('').includes('nzType'),
+      'compound-selector rejection should suggest nzType',
+    );
+
     console.log('  MCP server checks passed');
     server.kill();
     clearTimeout(timeout);
