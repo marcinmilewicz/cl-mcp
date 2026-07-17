@@ -77,12 +77,14 @@ describe("phase ordering (Commit 4 of plan-2)", () => {
         mainOutputs: [],
       };
     });
-    const spyResolve = vi.fn((examples: readonly StorybookExample[], selectorMap: ComponentMetadataFile["selectorMap"]) => {
-      calls.push("resolveStorybookUsedComponents");
-      // The selector map MUST be populated by the time the resolver is invoked.
-      expect(Object.keys(selectorMap).length).toBeGreaterThan(0);
-      expect(examples).toBeDefined();
-    });
+    const spyResolve = vi.fn(
+      (examples: readonly StorybookExample[], selectorMap: ComponentMetadataFile["selectorMap"]) => {
+        calls.push("resolveStorybookUsedComponents");
+        // The selector map MUST be populated by the time the resolver is invoked.
+        expect(Object.keys(selectorMap).length).toBeGreaterThan(0);
+        expect(examples).toBeDefined();
+      },
+    );
     const spyCooccurrences = vi.fn(() => {
       calls.push("buildStorybookCooccurrences");
     });
@@ -92,11 +94,7 @@ describe("phase ordering (Commit 4 of plan-2)", () => {
     spyResolve([], metadata.selectorMap);
     spyCooccurrences();
 
-    expect(calls).toEqual([
-      "generateSelectorMap",
-      "resolveStorybookUsedComponents",
-      "buildStorybookCooccurrences",
-    ]);
+    expect(calls).toEqual(["generateSelectorMap", "resolveStorybookUsedComponents", "buildStorybookCooccurrences"]);
     expect(spySelectorMap.mock.invocationCallOrder[0]).toBeLessThan(spyResolve.mock.invocationCallOrder[0]);
     expect(spyResolve.mock.invocationCallOrder[0]).toBeLessThan(spyCooccurrences.mock.invocationCallOrder[0]);
   });
@@ -121,7 +119,7 @@ describe("phase ordering (Commit 4 of plan-2)", () => {
       {
         storyName: "WithTooltip",
         filePath: "src/button/button.stories.ts" as StorybookExample["filePath"],
-        template: "<button mat-button matTooltip=\"hi\">Go</button>",
+        template: '<button mat-button matTooltip="hi">Go</button>',
         args: {},
         usedComponents: [],
       },

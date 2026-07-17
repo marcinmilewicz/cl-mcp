@@ -56,7 +56,23 @@ assert(
   `nzType literal union should resolve through the NzButtonType alias, got ${JSON.stringify(nzType?.resolvedValues)}`,
 );
 
+// @WithConfig() global-config extraction: NzButtonComponent.nzSize is
+// config-driven under the 'button' key.
+const withConfig = (button.configTokens ?? []).find((t) => t.kind === 'with-config');
+assert(withConfig, 'button should carry a with-config token from @WithConfig()');
+assert(withConfig.configKey === 'button', `config key should be 'button', got ${withConfig.configKey}`);
+assert(
+  withConfig.properties.some((p) => p.name === 'nzSize'),
+  '@WithConfig properties should include nzSize',
+);
+const withConfigComponents = names.filter((n) => {
+  const entry = metadata.components[n];
+  return entry.kind === 'analyzed' && (entry.configTokens ?? []).some((t) => t.kind === 'with-config');
+});
+assert(withConfigComponents.length >= 20, `expected >= 20 components with @WithConfig tokens, got ${withConfigComponents.length}`);
+
 console.log(`  Components: ${names.length}, selectors: ${selectorCount}`);
+console.log(`  @WithConfig components: ${withConfigComponents.length}`);
 console.log(`  Diagnostics: 0 errors, ${(metadata.diagnostics ?? []).length} warnings`);
 
 // ── Step 2: MCP server ──────────────────────────────────────────────
@@ -134,6 +150,11 @@ async function verifyServer() {
     const btnText = btn.content.map((c) => c.text).join('');
     assert(btnText.includes('nz-button'), 'get_component button should reference the nz-button selector');
     assert(btnText.includes('nzType') || btnText.includes('NzButton'), 'get_component button should list the API');
+
+    const btnFull = await call('get_component', { componentName: 'button', detail_level: 'full' });
+    const btnFullText = btnFull.content.map((c) => c.text).join('');
+    assert(btnFullText.includes('@WithConfig'), 'full detail should render the @WithConfig section');
+    assert(btnFullText.includes('provideNzConfig'), 'full detail should show the provideNzConfig usage snippet');
 
     const search = await call('find_components', { query: 'notification popup' });
     const searchText = search.content.map((c) => c.text).join('');

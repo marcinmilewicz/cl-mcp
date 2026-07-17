@@ -257,7 +257,9 @@ Algorithm:
 2. Collect every `new InjectionToken<T>(...)` binding and every `DEFAULT_*_CONFIG` / `*_DEFAULT_CONFIG` const.
 3. Pair each token with the interface named in its type argument; pair with the default-values const by naming convention.
 
-Only files matching `*-config.*` or `*.token.*` are scanned (from `src/cli/generate-metadata.ts:357`).
+Only files matching `*-config.*` or `*.token.*` are scanned for the InjectionToken pattern.
+
+Additionally, NG-ZORRO-style **`@WithConfig()` decorated inputs** are extracted from every component file (`extractWithConfigTokens`): the config key resolves through the `_nzModuleName` property (string literal, or an identifier resolved against same-file consts like `NZ_CONFIG_MODULE_NAME`, falling back to the class name), decorated inputs become the token's `properties` (always optional; initializers become `defaultValues`). Emitted as `ConfigTokenInfo` with the v4.2-additive fields `kind: "with-config"` + `configKey`; the MCP formatters render a `provideNzConfig({ key: { … } })` usage snippet for these instead of the InjectionToken provider snippet.
 
 ---
 

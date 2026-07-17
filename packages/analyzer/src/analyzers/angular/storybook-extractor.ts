@@ -9,7 +9,13 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import type { TmplAstBoundAttribute, TmplAstBoundEvent, TmplAstElement, TmplAstTemplate, TmplAstTextAttribute } from "@angular/compiler";
+import type {
+  TmplAstBoundAttribute,
+  TmplAstBoundEvent,
+  TmplAstElement,
+  TmplAstTemplate,
+  TmplAstTextAttribute,
+} from "@angular/compiler";
 import ts from "typescript";
 import type { DiagnosticsCollector } from "../../shared/diagnostics.js";
 import { type TemplateParseCache, walkTemplate } from "../../shared/template-parser.js";

@@ -46,6 +46,7 @@ import {
   analyzeContentProjection,
   analyzeInheritance,
   extractDeprecation,
+  extractWithConfigTokens,
   parseNgContentSlots,
   resolveConfigToken,
 } from "./angular-analyzer.js";
@@ -302,6 +303,27 @@ function analyzeComponent(
     }
   }
 
+  // 5b. @WithConfig() decorated inputs (NG-ZORRO-style global config). These
+  //     live in regular component files, not *-config.*/*.token.* files.
+  for (const filePath of tsFilePaths) {
+    try {
+      const tokens = extractWithConfigTokens(filePath, sourceFileCache);
+      for (const token of tokens) {
+        (token as { filePath: string }).filePath = asFilePath(path.relative(componentsPath, token.filePath));
+      }
+      configTokens.push(...tokens);
+    } catch (err) {
+      diagnostics.push({
+        severity: "warn",
+        code: "config-token-failed",
+        component: componentName,
+        file: path.relative(componentsPath, filePath),
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+    }
+  }
+
   // Serialize-time abs->rel conversion. Mutates `analysis` in place at the
   // very end so all preceding enhancement steps can rely on absolute paths.
   for (const a of analysis) {
@@ -454,7 +476,10 @@ function generateLLMSummary(
     }
   }
 
-  if (configTokens.length > 0) parts.push(`configurable via ${configTokens.map((t) => t.token).join(", ")}`);
+  if (configTokens.length > 0) {
+    const tokenLabels = configTokens.map((t) => (t.kind === "with-config" ? `@WithConfig('${t.configKey}')` : t.token));
+    parts.push(`configurable via ${tokenLabels.join(", ")}`);
+  }
 
   return `${parts.join(". ")}.`;
 }
@@ -471,7 +496,13 @@ function extractCommonPatterns(analysis: FileAnalysis[], configTokens: ConfigTok
   }
 
   for (const token of configTokens) {
-    patterns.push(`Configure with ${token.token} InjectionToken (interface: ${token.interface})`);
+    if (token.kind === "with-config") {
+      patterns.push(
+        `Global config: @WithConfig() inputs under key '${token.configKey}' (${token.properties.map((p) => p.name).join(", ")}) — unbound inputs fall back to provideNzConfig({ ${token.configKey}: { ... } })`,
+      );
+    } else {
+      patterns.push(`Configure with ${token.token} InjectionToken (interface: ${token.interface})`);
+    }
   }
 
   return [...new Set(patterns)];

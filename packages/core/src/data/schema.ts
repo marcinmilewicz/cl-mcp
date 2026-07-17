@@ -250,6 +250,9 @@ const ConfigTokenInfoSchema = z.object({
   properties: z.array(TypeMemberSchema),
   defaultValues: z.record(z.unknown()).optional(),
   filePath: z.string(),
+  // v4.2 additive: decorator-based global config (@WithConfig) vs InjectionToken.
+  kind: z.enum(['injection-token', 'with-config']).optional(),
+  configKey: z.string().optional(),
 });
 
 // StorybookExample — `validated` dropped in v4.0 (derivable from validation pass).

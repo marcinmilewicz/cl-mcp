@@ -1830,6 +1830,103 @@ export function resolveConfigToken(tokenFilePath: string, cache?: SourceFileCach
   return results;
 }
 
+/**
+ * Extract NG-ZORRO-style `@WithConfig()` global-config inputs.
+ *
+ * The pattern:
+ * ```ts
+ * const NZ_CONFIG_MODULE_NAME: NzConfigKey = 'button';
+ * export class NzButtonComponent {
+ *   readonly _nzModuleName: NzConfigKey = NZ_CONFIG_MODULE_NAME;
+ *   @Input() @WithConfig() nzSize: NzButtonSize = 'default';
+ * }
+ * ```
+ * Every `@WithConfig()`-decorated input falls back to the global config
+ * object under the component's config key when the template doesn't bind it.
+ * Emitted as a `ConfigTokenInfo` with `kind: "with-config"` and
+ * `configKey: 'button'`; `properties` are the decorated inputs (always
+ * optional — they all carry class-level defaults) and `defaultValues` holds
+ * the literal-evaluated initializers.
+ *
+ * Config-key resolution: `_nzModuleName` initializer (string literal, or an
+ * identifier resolved against same-file string consts like
+ * `NZ_CONFIG_MODULE_NAME`), falling back to the class name.
+ */
+export function extractWithConfigTokens(filePath: string, cache?: SourceFileCache): ConfigTokenAnalysis[] {
+  const sourceFile = getSourceFile(filePath, cache);
+  if (!sourceFile) return [];
+
+  // Same-file string consts, for `_nzModuleName = NZ_CONFIG_MODULE_NAME`.
+  const stringConsts = new Map<string, string>();
+  for (const statement of sourceFile.statements) {
+    if (!ts.isVariableStatement(statement)) continue;
+    for (const decl of statement.declarationList.declarations) {
+      if (ts.isIdentifier(decl.name) && decl.initializer && ts.isStringLiteralLike(decl.initializer)) {
+        stringConsts.set(decl.name.text, decl.initializer.text);
+      }
+    }
+  }
+
+  const results: ConfigTokenAnalysis[] = [];
+
+  const visit = (node: ts.Node): void => {
+    if (ts.isClassDeclaration(node) && node.name) {
+      const className = node.name.getText(sourceFile);
+      const properties: TypeMember[] = [];
+      const defaults: Record<string, unknown> = {};
+      let configKey: string | null = null;
+
+      for (const member of node.members) {
+        if (!ts.isPropertyDeclaration(member)) continue;
+        const memberName = member.name.getText(sourceFile);
+
+        if (memberName === "_nzModuleName" && member.initializer) {
+          if (ts.isStringLiteralLike(member.initializer)) {
+            configKey = member.initializer.text;
+          } else if (ts.isIdentifier(member.initializer)) {
+            configKey = stringConsts.get(member.initializer.text) ?? null;
+          }
+          continue;
+        }
+
+        const decorators = ts.getDecorators(member) ?? [];
+        if (!decorators.some((d) => getDecoratorName(d) === "WithConfig")) continue;
+
+        const typeText = member.type?.getText(sourceFile) ?? null;
+        properties.push({
+          name: memberName,
+          type: typeText,
+          typeResolved: typeText !== null,
+          // Config-driven inputs are optional by construction: the decorator
+          // supplies the global-config fallback, the initializer the default.
+          optional: true,
+          description: extractJsDocComment(member),
+        });
+        if (member.initializer) {
+          const value = evaluateExpression(member.initializer);
+          if (value !== undefined) defaults[memberName] = value;
+        }
+      }
+
+      if (properties.length > 0) {
+        results.push({
+          token: "WithConfig",
+          kind: "with-config",
+          configKey: configKey ?? className,
+          interface: className,
+          properties,
+          defaultValues: Object.keys(defaults).length > 0 ? defaults : undefined,
+          filePath: asFilePath(filePath),
+        });
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+
+  return results;
+}
+
 // ============================================================================
 // Formatting Utilities
 // ============================================================================

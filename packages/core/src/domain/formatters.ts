@@ -439,8 +439,13 @@ export function handleComponentFull(componentName: string) {
   if (preloaded.configTokens && preloaded.configTokens.length > 0) {
     result += `## Config Tokens\n\n`;
     for (const token of preloaded.configTokens) {
-      result += `### ${token.token}\n`;
-      result += `**Interface:** \`${token.interface}\`\n\n`;
+      if (token.kind === "with-config") {
+        result += `### Global config key: \`${token.configKey}\` (@WithConfig)\n`;
+        result += `**Component:** \`${token.interface}\`\n\n`;
+      } else {
+        result += `### ${token.token}\n`;
+        result += `**Interface:** \`${token.interface}\`\n\n`;
+      }
       result += `| Property | Type | Optional | Description |\n|----------|------|----------|-------------|\n`;
       for (const prop of token.properties) {
         result += `| \`${prop.name}\` | \`${fmtType(prop.type, prop.typeResolved)}\` | ${prop.optional ? "YES" : ""} | ${prop.description || "-"} |\n`;
@@ -449,7 +454,12 @@ export function handleComponentFull(componentName: string) {
       if (token.defaultValues) {
         result += `**Defaults:**\n\`\`\`json\n${JSON.stringify(token.defaultValues, null, 2)}\n\`\`\`\n\n`;
       }
-      result += `**Provider usage:**\n\`\`\`typescript\nproviders: [{ provide: ${token.token}, useValue: { ...config } }]\n\`\`\`\n\n`;
+      if (token.kind === "with-config") {
+        result += `**Global config usage:** these inputs fall back to the global config when not bound in the template:\n`;
+        result += `\`\`\`typescript\nprovideNzConfig({ ${token.configKey}: { ${token.properties[0]?.name ?? "..."}: /* value */ } })\n\`\`\`\n\n`;
+      } else {
+        result += `**Provider usage:**\n\`\`\`typescript\nproviders: [{ provide: ${token.token}, useValue: { ...config } }]\n\`\`\`\n\n`;
+      }
     }
   }
 
@@ -535,9 +545,15 @@ export function handleComponentExamples(componentName: string) {
   if (preloaded.configTokens && preloaded.configTokens.length > 0) {
     result += `## Configuration\n\n`;
     for (const token of preloaded.configTokens) {
-      result += `Use \`${token.token}\` InjectionToken with interface \`${token.interface}\` to configure.\n`;
-      if (token.defaultValues) result += `Defaults: \`${JSON.stringify(token.defaultValues)}\`\n`;
-      result += `\`\`\`typescript\nproviders: [{ provide: ${token.token}, useValue: { ...config } }]\n\`\`\`\n`;
+      if (token.kind === "with-config") {
+        result += `Inputs of \`${token.interface}\` marked @WithConfig fall back to the global config key \`${token.configKey}\` (${token.properties.map((p) => p.name).join(", ")}).\n`;
+        if (token.defaultValues) result += `Defaults: \`${JSON.stringify(token.defaultValues)}\`\n`;
+        result += `\`\`\`typescript\nprovideNzConfig({ ${token.configKey}: { ...config } })\n\`\`\`\n`;
+      } else {
+        result += `Use \`${token.token}\` InjectionToken with interface \`${token.interface}\` to configure.\n`;
+        if (token.defaultValues) result += `Defaults: \`${JSON.stringify(token.defaultValues)}\`\n`;
+        result += `\`\`\`typescript\nproviders: [{ provide: ${token.token}, useValue: { ...config } }]\n\`\`\`\n`;
+      }
     }
     result += `\n`;
   }

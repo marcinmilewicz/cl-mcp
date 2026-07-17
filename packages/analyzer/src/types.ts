@@ -481,6 +481,16 @@ export interface ConfigTokenInfo {
   properties: readonly TypeMember[];
   defaultValues?: Record<string, unknown>;
   filePath: FilePath;
+  /**
+   * Which configuration pattern produced this entry (additive in v4.2):
+   *   - `"injection-token"` (default when absent) — `new InjectionToken<T>()`
+   *     paired with a config interface + defaults const.
+   *   - `"with-config"` — NG-ZORRO-style `@WithConfig()` decorated inputs
+   *     falling back to a global config object under `configKey`.
+   */
+  kind?: "injection-token" | "with-config";
+  /** Global-config key for `kind: "with-config"` (e.g. `'button'`). */
+  configKey?: string;
 }
 
 // ============================================================================
