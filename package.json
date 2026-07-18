@@ -17,7 +17,10 @@
     "example:ngzorro": "cd examples/ng-zorro && npm run pipeline",
     "example:shadcn-setup": "npm run build && cd examples/react-shadcn && npm run setup",
     "example:shadcn": "cd examples/react-shadcn && npm run pipeline",
-    "inspect": "CL_MCP_METADATA_PATH=./data/angular-material/component-metadata.json npx @modelcontextprotocol/inspector node packages/mcp-server/dist/index.js"
+    "inspect": "CL_MCP_METADATA_PATH=./data/angular-material/component-metadata.json npx @modelcontextprotocol/inspector node packages/mcp-server/dist/index.js",
+    "docs:dev": "npm run dev -w packages/docs",
+    "docs:build": "npm run build && npm run build -w packages/docs",
+    "docs:preview": "npm run preview -w packages/docs"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",

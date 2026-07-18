@@ -29,6 +29,7 @@ npm run build
 
 - Node.js >= 18
 - npm (workspaces)
+- `@angular/compiler` (optional peer dependency of `@cl-mcp/analyzer`) — required only to analyze Angular libraries or validate Angular templates. React-only setups can skip it; Angular entry points then fail with a clear `angular-compiler-unavailable` error instead of crashing at import time.
 
 ### Build & test
 
@@ -53,6 +54,22 @@ npx vitest run packages/analyzer/src/some.test.ts
 - **TypeScript ESM** — all packages use `"type": "module"` with Node16 module resolution. Imports must include `.js` extensions.
 - **Biome** — 2-space indent, 120 char line width.
 - **Vitest** for testing.
+
+## Documentation
+
+The full documentation site (`@cl-mcp/docs`) is built with [Astro Starlight](https://starlight.astro.build/), with an API reference auto-generated from the `@cl-mcp/core` and `@cl-mcp/analyzer` public entry points via [TypeDoc](https://typedoc.org/).
+
+- **Published site:** https://marcinmilewicz.github.io/cl-mcp/ (deployed from `main` by `.github/workflows/docs.yml`).
+
+```bash
+npm run docs:dev       # run the docs site locally (http://localhost:4321/cl-mcp/)
+npm run docs:build     # build packages, then the docs site (incl. TypeDoc API reference)
+npm run docs:preview   # preview the production build locally
+```
+
+The API reference is generated at build time and is git-ignored (`packages/docs/src/content/docs/api/`); the `docs:build` script builds the TS packages first so TypeDoc can resolve the cross-package `@cl-mcp/*` type imports.
+
+> **One-time setup:** enable GitHub Pages for the repository with **Settings → Pages → Build and deployment → Source: GitHub Actions**. The workflow then publishes on every push to `main` that touches `packages/**`.
 
 ## Generating metadata
 

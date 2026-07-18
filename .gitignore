@@ -1,6 +1,10 @@
 node_modules/
 dist/
 *.tsbuildinfo
+
+# Astro docs site (packages/docs) — build output, cache, generated API reference
+packages/docs/.astro/
+packages/docs/src/content/docs/api/
 .DS_Store
 *.log
 data/*/component-metadata.json
