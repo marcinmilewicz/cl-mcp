@@ -13,17 +13,16 @@
  *   - Pipe argument-count validation against a built-in arity table.
  */
 
-import {
-  type AST,
-  type ASTWithSource,
-  type BindingPipe,
-  RecursiveAstVisitor,
-  type TmplAstBoundAttribute,
-  type TmplAstBoundEvent,
-  type TmplAstBoundText,
-  type TmplAstElement,
-  type TmplAstTemplate,
-  type TmplAstTextAttribute,
+import type {
+  AST,
+  ASTWithSource,
+  BindingPipe,
+  TmplAstBoundAttribute,
+  TmplAstBoundEvent,
+  TmplAstBoundText,
+  TmplAstElement,
+  TmplAstTemplate,
+  TmplAstTextAttribute,
 } from "@angular/compiler";
 
 import type {
@@ -39,7 +38,12 @@ import type {
 } from "../types.js";
 import { asSelector } from "../types.js";
 import type { DiagnosticsCollector } from "./diagnostics.js";
-import { TemplateParseCache, walkTemplate } from "./template-parser.js";
+import {
+  TemplateParseCache,
+  isAngularCompilerAvailable,
+  requireAngularCompiler,
+  walkTemplate,
+} from "./template-parser.js";
 
 // ============================================================================
 // Types
@@ -413,6 +417,22 @@ export class TemplateValidator {
    * Validate a template string.
    */
   validate(template: string): ValidationResult {
+    if (!isAngularCompilerAvailable()) {
+      return {
+        errors: [
+          {
+            type: "angular-compiler-unavailable",
+            message:
+              "Angular template validation requires @angular/compiler, which is not installed. " +
+              "Install it (e.g. `npm i -D @angular/compiler`) to validate Angular templates.",
+            element: "",
+          },
+        ],
+        warnings: [],
+        suggestions: [],
+      };
+    }
+
     if (template.length > TemplateValidator.MAX_TEMPLATE_LENGTH) {
       return {
         errors: [
@@ -869,6 +889,9 @@ function spanOf(node: unknown): TemplateSourceSpan | undefined {
  */
 function collectPipes(ast: AST): Array<{ name: string; args: unknown[] }> {
   const found: Array<{ name: string; args: unknown[] }> = [];
+  // Lazy: `validate()` guards on availability before any expression reaches
+  // this walk, so the compiler is always loaded here.
+  const { RecursiveAstVisitor } = requireAngularCompiler();
   const visitor = new (class extends RecursiveAstVisitor {
     override visitPipe(pipe: BindingPipe, context: unknown): unknown {
       found.push({ name: pipe.name, args: pipe.args ?? [] });

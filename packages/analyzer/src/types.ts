@@ -358,6 +358,11 @@ export type ValidationError =
       type: "template-too-large";
       message: string;
       element: "";
+    }
+  | {
+      type: "angular-compiler-unavailable";
+      message: string;
+      element: "";
     };
 
 export interface ValidationWarning {

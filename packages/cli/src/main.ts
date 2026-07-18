@@ -153,6 +153,9 @@ Semantics an agent must know:
   - prop VALUES are not checked (variant="nonsense" passes; use \`get\` for
     the allowed literal values)
   - unregistered/DOM elements are ignored, never flagged
+  - Angular validation needs the optional \`@angular/compiler\` peer dependency
+    installed; without it the result is a single angular-compiler-unavailable
+    error (React/JSX validation is unaffected)
 
 Examples:
   cl-mcp validate --components Dialog.Root --code '<Dialog.Root defaultOpen={true} />'

@@ -25,7 +25,7 @@ import {
   findRelatedComponents,
   resolveDependencies,
 } from "../../shared/import-graph.js";
-import { TemplateParseCache } from "../../shared/template-parser.js";
+import { TemplateParseCache, requireAngularCompiler } from "../../shared/template-parser.js";
 import type {
   AnalyzedComponentEntry,
   AnalyzerOptions,
@@ -752,6 +752,10 @@ export class AngularFrameworkAnalyzer implements FrameworkAnalyzer {
   readonly framework = "angular" as const;
 
   async analyze(libraryPath: string, options: AnalyzerOptions = {}): Promise<ComponentMetadataFile> {
+    // Fail fast with a clear message: template parsing (ng-content slots,
+    // validation, storybook used-components) needs the optional peer dep.
+    requireAngularCompiler();
+
     const packageName = options.packageName ?? path.basename(libraryPath);
     const importPrefix = options.importPrefix ?? `${packageName}/`;
     const selectorPrefix = options.selectorPrefix ?? "";

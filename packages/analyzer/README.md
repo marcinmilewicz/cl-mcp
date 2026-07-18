@@ -13,6 +13,8 @@ The Angular walkthrough below still holds verbatim; v4.2 adds two layers on top:
 
 CLI dispatch: `--framework angular|react --path …` for a single library; `--config cl-mcp.yaml` / `--scan <dir>` / `--lib <path>` for workspaces.
 
+**Optional `@angular/compiler`:** the compiler is an optional peer dependency, loaded once via a guarded top-level `await import()` in `src/shared/template-parser.ts` (every other module uses `import type` only). React-only consumers never need it installed — importing the analyzer (or `@cl-mcp/core`) works without it. When absent, `AngularFrameworkAnalyzer.analyze()` fails fast with an install hint (`AngularCompilerUnavailableError`) and `TemplateValidator.validate()` returns a single `angular-compiler-unavailable` error; availability can be probed with the exported `isAngularCompilerAvailable()`.
+
 ---
 
 ## 1. High-Level Model

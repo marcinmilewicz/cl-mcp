@@ -77,6 +77,9 @@ export {
   capitalize,
 } from "./shared/template-validator.js";
 
+// Optional `@angular/compiler` peer dependency — availability probes
+export { AngularCompilerUnavailableError, isAngularCompilerAvailable } from "./shared/template-parser.js";
+
 // Angular Analyzer
 export { AngularAstAnalyzer } from "./analyzers/angular/angular-analyzer.js";
 
