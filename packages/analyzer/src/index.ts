@@ -51,6 +51,7 @@ export type {
   ComponentMetadataFile,
   AnalyzerOptions,
   FrameworkAnalyzer,
+  SupportedFramework,
   AnalyzerDiagnostic,
   ResolvedValues,
   FilePath,
@@ -76,5 +77,31 @@ export {
   capitalize,
 } from "./shared/template-validator.js";
 
+// Optional `@angular/compiler` peer dependency — availability probes
+export { AngularCompilerUnavailableError, isAngularCompilerAvailable } from "./shared/template-parser.js";
+
 // Angular Analyzer
 export { AngularAstAnalyzer } from "./analyzers/angular/angular-analyzer.js";
+
+// Framework analyzers (the `FrameworkAnalyzer` seam)
+export {
+  AngularFrameworkAnalyzer,
+  METADATA_SCHEMA_VERSION,
+} from "./analyzers/angular/angular-framework-analyzer.js";
+export { ReactFrameworkAnalyzer } from "./analyzers/react/react-framework-analyzer.js";
+export { ReactAstAnalyzer, parseDeprecationText } from "./analyzers/react/react-analyzer.js";
+export { JsxValidator } from "./analyzers/react/jsx-validator.js";
+
+// Workspace layer (multi-library discovery + orchestration)
+export type { WorkspaceManifest } from "./types.js";
+export {
+  loadWorkspaceConfig,
+  findWorkspaceConfig,
+  WorkspaceConfigSchema,
+  type WorkspaceConfig,
+  type LibraryEntry,
+  type ComponentLayout,
+} from "./workspace/config.js";
+export { detectFramework } from "./workspace/framework-detector.js";
+export { resolveLibraries, type ResolvedLibrary } from "./workspace/library-discovery.js";
+export { analyzeWorkspace, type WorkspaceAnalysisResult } from "./workspace/workspace-orchestrator.js";

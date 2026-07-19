@@ -38,9 +38,10 @@ export function createVirtualProgram(
   const virtualSources = new Map<string, ts.SourceFile>();
 
   for (const [name, source] of Object.entries(files)) {
+    const scriptKind = name.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
     virtualSources.set(
       name,
-      ts.createSourceFile(name, source, options.target ?? ts.ScriptTarget.ES2022, true, ts.ScriptKind.TS),
+      ts.createSourceFile(name, source, options.target ?? ts.ScriptTarget.ES2022, true, scriptKind),
     );
   }
 

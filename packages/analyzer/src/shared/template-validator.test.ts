@@ -57,6 +57,97 @@ function analysisWith(
   };
 }
 
+describe("TemplateValidator — compound selectors (button[mat-button])", () => {
+  function materialStyleValidator() {
+    const v = new TemplateValidator({ selectorPrefix: "mat-", libraryName: "Angular Material" });
+    v.registerFromAnalysis([
+      analysisWith([
+        {
+          className: "MatButton",
+          selector: "button[mat-button], a[mat-button]",
+          inputs: [{ name: "color" }, { name: "disabled", type: "boolean" }],
+          outputs: [{ name: "pressed" }],
+        },
+      ]),
+    ]);
+    return v;
+  }
+
+  it("validates bindings on elements matched ONLY via a compound attribute selector", () => {
+    const v = materialStyleValidator();
+    const result = v.validate('<button mat-button [disabld]="x">Hi</button>');
+    const unknown = result.errors.filter((e) => e.type === "unknown-input");
+    expect(unknown).toHaveLength(1);
+    expect(unknown[0].property).toBe("disabld");
+    expect(unknown[0].suggestion).toContain("disabled");
+  });
+
+  it("accepts valid bindings on every comma clause (button and a hosts)", () => {
+    const v = materialStyleValidator();
+    expect(v.validate('<button mat-button [disabled]="x" (pressed)="go()">Hi</button>').errors).toEqual([]);
+    expect(v.validate('<a mat-button [color]="c">Hi</a>').errors).toEqual([]);
+  });
+
+  it("does not match the compound API on elements missing the selector attribute", () => {
+    const v = materialStyleValidator();
+    // A plain <button> is not a MatButton — bogus binding is NOT checked
+    // against MatButton's API (and no unknown-element: no prefix on tag).
+    expect(v.validate('<button [whatever]="x">Hi</button>').errors).toEqual([]);
+  });
+
+  it("does not flag the matching selector attribute itself as a typo", () => {
+    const v = materialStyleValidator();
+    expect(v.validate("<button mat-button>Hi</button>").errors).toEqual([]);
+  });
+
+  it("enforces required inputs from compound-matched clauses without :not()", () => {
+    const v = new TemplateValidator();
+    v.registerFromAnalysis([
+      analysisWith([
+        {
+          className: "OrgField",
+          selector: "input[org-field]",
+          inputs: [{ name: "label", required: true }],
+        },
+      ]),
+    ]);
+    const missing = v.validate("<input org-field />").errors.filter((e) => e.type === "missing-required");
+    expect(missing).toHaveLength(1);
+    expect(missing[0].property).toBe("label");
+  });
+
+  it("matches :not() clauses conservatively but skips their required-input enforcement", () => {
+    const v = new TemplateValidator();
+    v.registerFromAnalysis([
+      analysisWith(
+        [],
+        [
+          {
+            className: "NzWave",
+            selector: '[nz-wave],button[nz-button]:not([nzType="link"])',
+            inputs: [{ name: "nzWaveExtraNode", required: true }],
+          },
+        ],
+      ),
+    ]);
+    // Matched via the negated clause: unknown inputs ARE checked...
+    const result = v.validate('<button nz-button [bogus]="x"></button>');
+    expect(result.errors.some((e) => e.type === "unknown-input" && e.property === "bogus")).toBe(true);
+    // ...but the negated clause does not demand required inputs.
+    expect(result.errors.some((e) => e.type === "missing-required")).toBe(false);
+  });
+
+  it("registers comma-separated attribute directive lists ([a],[b])", () => {
+    const v = new TemplateValidator();
+    v.registerFromAnalysis([
+      analysisWith([], [{ className: "Tip", selector: "[tipTop],[tipBottom]", inputs: [{ name: "tipText" }] }]),
+    ]);
+    expect(v.validate('<span tipBottom [tipText]="t"></span>').errors).toEqual([]);
+    const bad = v.validate('<span tipTop [tipTxt]="t"></span>');
+    expect(bad.errors.some((e) => e.type === "unknown-input" && e.property === "tipTxt")).toBe(true);
+  });
+});
+
 describe("TemplateValidator (AST-based)", () => {
   it("flags unknown input on a plain element, keeps known ones silent", () => {
     const v = new TemplateValidator({ selectorPrefix: "mat-", libraryName: "Angular Material" });

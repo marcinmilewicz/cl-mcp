@@ -1,9 +1,19 @@
 node_modules/
 dist/
 *.tsbuildinfo
+
+# Astro docs site (packages/docs) — build output, cache, generated API reference
+packages/docs/.astro/
+packages/docs/src/content/docs/api/
 .DS_Store
 *.log
-examples/*/data/component-metadata.json
+data/*/component-metadata.json
+data/workspace-manifest.json
 examples/*/node_modules/
-examples/*/.angular
 examples/angular-material/components/
+examples/multi-framework/data/
+examples/react-base-ui/base-ui/
+examples/react-base-ui/data/
+examples/ng-zorro/ng-zorro/
+examples/ng-zorro/data/
+examples/react-shadcn/data/

@@ -358,6 +358,11 @@ export type ValidationError =
       type: "template-too-large";
       message: string;
       element: "";
+    }
+  | {
+      type: "angular-compiler-unavailable";
+      message: string;
+      element: "";
     };
 
 export interface ValidationWarning {
@@ -481,6 +486,16 @@ export interface ConfigTokenInfo {
   properties: readonly TypeMember[];
   defaultValues?: Record<string, unknown>;
   filePath: FilePath;
+  /**
+   * Which configuration pattern produced this entry (additive in v4.2):
+   *   - `"injection-token"` (default when absent) — `new InjectionToken<T>()`
+   *     paired with a config interface + defaults const.
+   *   - `"with-config"` — NG-ZORRO-style `@WithConfig()` decorated inputs
+   *     falling back to a global config object under `configKey`.
+   */
+  kind?: "injection-token" | "with-config";
+  /** Global-config key for `kind: "with-config"` (e.g. `'button'`). */
+  configKey?: string;
 }
 
 // ============================================================================
@@ -616,6 +631,17 @@ export type ComponentMetadataEntry = EnhancedComponentMetadataEntry;
 export interface ComponentMetadataFile {
   version: string;
   generatedAt: string;
+  /**
+   * Which framework analyzer produced this file. Introduced in schema v4.2
+   * (additive); absent means `"angular"` (every pre-v4.2 file was Angular).
+   */
+  framework?: SupportedFramework;
+  /**
+   * Canonical package/library name (e.g. `@angular/material`). Introduced in
+   * schema v4.2 (additive). Consumers should prefer this over deriving the
+   * name from `componentsPath`.
+   */
+  libraryName?: string;
   componentsPath: string;
   importPrefix?: string;
   libraryDocumentation?: string;
@@ -625,6 +651,29 @@ export interface ComponentMetadataFile {
    * Non-fatal analyzer diagnostics surfaced from the generation run.
    * Introduced in schema v3.1 (additive).
    */
+  diagnostics?: readonly AnalyzerDiagnostic[];
+}
+
+/**
+ * Workspace manifest (`workspace-manifest.json`) — describes a multi-library
+ * analysis run. Written next to the per-library metadata files. Optional:
+ * a single metadata file without a manifest is the single-library mode.
+ * Introduced with schema v4.2.
+ */
+export interface WorkspaceManifest {
+  version: string;
+  generatedAt: string;
+  libraries: ReadonlyArray<{
+    name: string;
+    framework: SupportedFramework;
+    /** Library root, relative to the workspace root at generation time. */
+    path: string;
+    importAlias: string;
+    /** Metadata file path, relative to the manifest's directory. */
+    metadataPath: string;
+  }>;
+  /** `libName -> [libNames it imports from]`. */
+  crossLibraryGraph: Record<string, string[]>;
   diagnostics?: readonly AnalyzerDiagnostic[];
 }
 
@@ -646,6 +695,9 @@ export interface AnalyzerDiagnostic {
 // Analyzer Interface
 // ============================================================================
 
+/** Frameworks the metadata schema can describe. Only `angular` has an analyzer today. */
+export type SupportedFramework = "angular" | "react";
+
 export interface AnalyzerOptions {
   storybookPath?: string;
   documentationPath?: string;
@@ -656,6 +708,6 @@ export interface AnalyzerOptions {
 }
 
 export interface FrameworkAnalyzer {
-  readonly framework: "angular";
-  analyze(libraryPath: string, options: AnalyzerOptions): Promise<ComponentMetadataFile>;
+  readonly framework: SupportedFramework;
+  analyze(libraryPath: string, options?: AnalyzerOptions): Promise<ComponentMetadataFile>;
 }

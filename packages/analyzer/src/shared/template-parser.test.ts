@@ -106,10 +106,7 @@ describe("parseAngularTemplate", () => {
   });
 
   it("descends into @defer @placeholder branch", () => {
-    const r = parseAngularTemplate(
-      "@defer { <div></div> } @placeholder { <span></span> }",
-      "defer-placeholder.html",
-    );
+    const r = parseAngularTemplate("@defer { <div></div> } @placeholder { <span></span> }", "defer-placeholder.html");
     const names: string[] = [];
     walkTemplate(r.nodes, {
       visitElement(el) {

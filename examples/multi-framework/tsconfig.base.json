@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@acme/ui": ["libs/ui/Button.tsx"],
+      "@acme/forms": ["libs/forms/input/input.component.ts"]
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@cl-mcp/core",
+  "version": "1.0.0",
+  "description": "Transport-agnostic core of cl-mcp: metadata loading (multi-library registry), search/resolution domain, and tool handlers shared by the MCP server and the CLI",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.25.0"
+  },
+  "peerDependencies": {
+    "@cl-mcp/analyzer": "*"
+  }
+}

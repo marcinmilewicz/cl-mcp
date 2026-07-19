@@ -23,6 +23,7 @@ import {
   analyzeContentProjection,
   analyzeInheritance,
   extractDeprecation,
+  extractWithConfigTokens,
   parseNgContentSlots,
 } from "./angular-analyzer.js";
 
@@ -419,6 +420,68 @@ describe("Phase 3 extractor fixes", () => {
 // ---------------------------------------------------------------------------
 // extractDeprecation
 // ---------------------------------------------------------------------------
+
+describe("extractWithConfigTokens (@WithConfig global config)", () => {
+  it("extracts decorated inputs with the module key resolved through a same-file const", () => {
+    const filePath = writeFixture(
+      "with-config.ts",
+      `
+        import { NzConfigKey, WithConfig } from 'ng-zorro-antd/core/config';
+        import { Component, Input } from '@angular/core';
+
+        const NZ_CONFIG_MODULE_NAME: NzConfigKey = 'button';
+
+        @Component({ selector: 'nz-button', template: '' })
+        export class NzButtonComponent {
+          readonly _nzModuleName: NzConfigKey = NZ_CONFIG_MODULE_NAME;
+
+          /** Button size. */
+          @Input() @WithConfig() nzSize: string = 'default';
+          @Input() @WithConfig() nzGhost: boolean = false;
+          @Input() nzLoading: boolean = false;
+        }
+      `,
+    );
+    const tokens = extractWithConfigTokens(filePath);
+    expect(tokens).toHaveLength(1);
+    const token = tokens[0];
+    expect(token.kind).toBe("with-config");
+    expect(token.configKey).toBe("button");
+    expect(token.interface).toBe("NzButtonComponent");
+    expect(token.properties.map((p) => p.name).sort()).toEqual(["nzGhost", "nzSize"]);
+    expect(token.properties.every((p) => p.optional)).toBe(true);
+    expect(token.properties.find((p) => p.name === "nzSize")?.description).toBe("Button size.");
+    expect(token.defaultValues).toEqual({ nzSize: "default", nzGhost: false });
+  });
+
+  it("reads a string-literal _nzModuleName directly and falls back to the class name without one", () => {
+    const filePath = writeFixture(
+      "with-config-inline.ts",
+      `
+        export class InlineKey {
+          readonly _nzModuleName = 'datePicker';
+          @WithConfig() nzFormat?: string;
+        }
+        export class NoKey {
+          @WithConfig() nzBordered: boolean = true;
+        }
+        export class NoConfig {
+          plain = 1;
+        }
+      `,
+    );
+    const tokens = extractWithConfigTokens(filePath);
+    expect(tokens).toHaveLength(2);
+    expect(tokens[0].configKey).toBe("datePicker");
+    expect(tokens[1].configKey).toBe("NoKey");
+    expect(tokens[1].defaultValues).toEqual({ nzBordered: true });
+  });
+
+  it("returns nothing for files without @WithConfig", () => {
+    const filePath = writeFixture("no-with-config.ts", "export class Plain { x = 1; }");
+    expect(extractWithConfigTokens(filePath)).toEqual([]);
+  });
+});
 
 describe("extractDeprecation", () => {
   it("parses a single-line (same-line closing */) @deprecated tag", () => {

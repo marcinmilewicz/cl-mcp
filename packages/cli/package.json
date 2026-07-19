@@ -1,0 +1,19 @@
+{
+  "name": "@cl-mcp/cli",
+  "version": "1.0.0",
+  "description": "Command-line access to component library metadata — the same tools as the MCP server, for agents and humans without an MCP client",
+  "type": "module",
+  "main": "./dist/main.js",
+  "types": "./dist/main.d.ts",
+  "bin": {
+    "cl-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@cl-mcp/analyzer": "*",
+    "@cl-mcp/core": "*"
+  }
+}

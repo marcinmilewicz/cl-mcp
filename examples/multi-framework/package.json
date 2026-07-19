@@ -1,0 +1,11 @@
+{
+  "name": "cl-mcp-example-multi-framework",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Example: mixed React+Angular workspace → workspace generation → multi-library MCP server + CLI verification",
+  "scripts": {
+    "analyze": "node ../../packages/analyzer/dist/cli/generate-metadata.js --config ./cl-mcp.yaml",
+    "verify": "node scripts/verify-multi.mjs",
+    "pipeline": "npm run analyze && npm run verify"
+  }
+}

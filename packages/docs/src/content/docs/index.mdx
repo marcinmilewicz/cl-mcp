@@ -1,0 +1,53 @@
+---
+title: cl-mcp
+description: An MCP server that gives LLMs accurate, build-time metadata for Angular and React component libraries.
+template: splash
+hero:
+  tagline: Accurate, build-time metadata for Angular &amp; React component libraries — served to LLMs over MCP.
+  actions:
+    - text: Get Started
+      link: getting-started/introduction/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/marcinmilewicz/cl-mcp
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+## Why cl-mcp?
+
+LLMs guess component APIs. `cl-mcp` gives them the real thing: inputs/props,
+outputs/callbacks, selectors/JSX names, content projection, config tokens and
+Storybook examples — extracted straight from your library's source at build
+time, then served over the [Model Context Protocol](https://modelcontextprotocol.io).
+
+<CardGrid stagger>
+  <Card title="Two frameworks, one shape" icon="puzzle">
+    Angular and React libraries are analyzed into the **same** metadata schema,
+    so every tool, formatter and validator works across both.
+  </Card>
+  <Card title="Build-time truth" icon="approve-check">
+    Metadata comes from TypeScript AST analysis, not runtime reflection or
+    guesswork — deprecations, inheritance and literal-union types included.
+  </Card>
+  <Card title="MCP or CLI" icon="laptop">
+    Use the stdio MCP server from any client, or the `cl-mcp` CLI for agents
+    without an MCP client, for CI, and for humans.
+  </Card>
+  <Card title="Multi-library workspaces" icon="open-book">
+    Point it at a `cl-mcp.yaml` and it analyzes every library, emits per-library
+    metadata plus a cross-library import graph manifest.
+  </Card>
+</CardGrid>
+
+## Next steps
+
+<CardGrid>
+  <LinkCard title="Introduction" href="getting-started/introduction/" description="What the project is and how the pieces fit together." />
+  <LinkCard title="Quick Start" href="getting-started/quick-start/" description="Generate metadata and run the server in a few commands." />
+  <LinkCard title="MCP Tools" href="reference/mcp-tools/" description="The six tools exposed to LLMs." />
+  <LinkCard title="API Reference" href="api/" description="Auto-generated from @cl-mcp/core and @cl-mcp/analyzer." />
+</CardGrid>

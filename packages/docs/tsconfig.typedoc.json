@@ -1,0 +1,15 @@
+{
+  "// ": "Dedicated tsconfig for TypeDoc. It type-checks the public entry points",
+  "//  ": "of @cl-mcp/core and @cl-mcp/analyzer. Cross-package `@cl-mcp/*` imports",
+  "//   ": "resolve via the workspace node_modules symlinks to each package's",
+  "//    ": "built dist/*.d.ts, so `npm run build` must run before the docs build.",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "types": ["node"]
+  },
+  "include": ["../core/src/index.ts", "../analyzer/src/index.ts"]
+}

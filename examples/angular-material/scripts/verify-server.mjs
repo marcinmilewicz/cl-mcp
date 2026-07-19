@@ -17,7 +17,7 @@ const EXAMPLE_ROOT = resolve(__dirname, '..');
 const SERVER_PATH = resolve(ROOT, 'packages/mcp-server/dist/index.js');
 const METADATA_PATH = resolve(EXAMPLE_ROOT, 'data/component-metadata.json');
 
-const EXPECTED_TOOL_COUNT = 5;
+const EXPECTED_TOOL_COUNT = 6;
 const TIMEOUT_MS = 30_000;
 
 let requestId = 0;

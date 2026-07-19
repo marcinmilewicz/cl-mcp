@@ -16,31 +16,72 @@
  *    visitor callbacks optional and side-effect free so each call-site can opt in
  *    only to the node kinds it cares about.
  *
- * No call-site consumes this yet (Commit 1 lands infrastructure only).
+ * This module is also the ONLY place `@angular/compiler` is loaded (guarded
+ * top-level await, see below) — it is an optional peer dependency.
  */
 
 import { createHash } from "node:crypto";
-import {
-  type TmplAstBoundText,
-  type TmplAstContent,
-  type TmplAstDeferredBlock,
-  type TmplAstElement,
-  type TmplAstForLoopBlock,
-  type TmplAstIcu,
-  type TmplAstIfBlock,
-  type TmplAstLetDeclaration,
-  type TmplAstNode,
-  type TmplAstSwitchBlock,
-  type TmplAstTemplate,
-  type TmplAstText,
-  type TmplAstUnknownBlock,
-  parseTemplate,
+import type {
+  TmplAstBoundText,
+  TmplAstContent,
+  TmplAstDeferredBlock,
+  TmplAstElement,
+  TmplAstForLoopBlock,
+  TmplAstIcu,
+  TmplAstIfBlock,
+  TmplAstLetDeclaration,
+  TmplAstNode,
+  TmplAstSwitchBlock,
+  TmplAstTemplate,
+  TmplAstText,
+  TmplAstUnknownBlock,
 } from "@angular/compiler";
+
+// ============================================================================
+// Optional `@angular/compiler` loading
+// ============================================================================
+//
+// `@angular/compiler` is an OPTIONAL peer dependency: React-only consumers of
+// the pipeline never need it installed. All value access goes through the
+// guarded top-level-await load below (type-only imports above are erased at
+// compile time), so importing this module — and everything that transitively
+// imports it, including `@cl-mcp/core` — never throws when the package is
+// absent. Only actually parsing an Angular template does.
+
+export type AngularCompilerModule = typeof import("@angular/compiler");
+
+let angularCompiler: AngularCompilerModule | null = null;
+let angularCompilerLoadError: string | null = null;
+try {
+  angularCompiler = await import("@angular/compiler");
+} catch (err) {
+  angularCompilerLoadError = err instanceof Error ? err.message : String(err);
+}
+
+/** Thrown by any Angular-template entry point when `@angular/compiler` is not installed. */
+export class AngularCompilerUnavailableError extends Error {
+  constructor(cause: string | null) {
+    super(
+      `@angular/compiler is required to parse Angular templates but is not installed. Install it alongside @cl-mcp/analyzer (e.g. \`npm i -D @angular/compiler\`) to analyze Angular libraries or validate Angular templates.${cause ? ` Original load error: ${cause}` : ""}`,
+    );
+    this.name = "AngularCompilerUnavailableError";
+  }
+}
+
+export function isAngularCompilerAvailable(): boolean {
+  return angularCompiler !== null;
+}
+
+/** Return the loaded compiler module, or throw `AngularCompilerUnavailableError`. */
+export function requireAngularCompiler(): AngularCompilerModule {
+  if (!angularCompiler) throw new AngularCompilerUnavailableError(angularCompilerLoadError);
+  return angularCompiler;
+}
 
 // `ParsedTemplate` is not exported as a type alias from the package root, but
 // it is the concrete return type of `parseTemplate`. We extract it structurally
 // so downstream code can name it.
-export type ParsedTemplate = ReturnType<typeof parseTemplate>;
+export type ParsedTemplate = ReturnType<AngularCompilerModule["parseTemplate"]>;
 
 export interface ParseAngularTemplateOptions {
   /**
@@ -70,7 +111,7 @@ export function parseAngularTemplate(
   sourceUrl: string,
   opts: ParseAngularTemplateOptions = {},
 ): ParsedTemplate {
-  return parseTemplate(template, sourceUrl, {
+  return requireAngularCompiler().parseTemplate(template, sourceUrl, {
     preserveWhitespaces: opts.preserveWhitespaces ?? DEFAULT_OPTIONS.preserveWhitespaces,
     preserveLineEndings: opts.preserveLineEndings ?? DEFAULT_OPTIONS.preserveLineEndings,
     alwaysAttemptHtmlToR3AstConversion:
