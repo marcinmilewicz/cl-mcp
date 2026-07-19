@@ -1,19 +1,39 @@
 {
   "name": "@cl-mcp/cli",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Command-line access to component library metadata — the same tools as the MCP server, for agents and humans without an MCP client",
+  "keywords": ["mcp", "cli", "component-library", "metadata", "angular", "react"],
+  "license": "MIT",
+  "author": "Marcin Milewicz",
+  "homepage": "https://github.com/marcinmilewicz/cl-mcp/tree/main/packages/cli#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marcinmilewicz/cl-mcp.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/marcinmilewicz/cl-mcp/issues"
+  },
   "type": "module",
   "main": "./dist/main.js",
   "types": "./dist/main.d.ts",
   "bin": {
     "cl-mcp": "./dist/index.js"
   },
+  "files": ["dist", "README.md", "LICENSE"],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@cl-mcp/analyzer": "*",
-    "@cl-mcp/core": "*"
+    "@cl-mcp/analyzer": "^2.0.0",
+    "@cl-mcp/core": "^2.0.0"
   }
 }
