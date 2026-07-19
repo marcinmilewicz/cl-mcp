@@ -1,0 +1,11 @@
+import { bootstrapApplication } from '@angular/platform-browser';
+import { provideNativeDateAdapter } from '@angular/material/core';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { AppComponent } from './app/app.component';
+
+bootstrapApplication(AppComponent, {
+  providers: [
+    provideAnimationsAsync(),
+    provideNativeDateAdapter(),
+  ],
+}).catch((err) => console.error(err));

@@ -2,5 +2,7 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/examples/angular-material/components" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/examples/ng-zorro/ng-zorro" vcs="Git" />
   </component>
 </project>
