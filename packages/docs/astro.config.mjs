@@ -2,6 +2,7 @@
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 import starlightTypeDoc, { typeDocSidebarGroup } from "starlight-typedoc";
+import { blueprintDark, blueprintLight } from "./src/styles/blueprint-code-themes.mjs";
 
 // GitHub Pages is served from https://<user>.github.io/<repo>/, so the site is
 // the user page and `base` is the repository name. Starlight resolves all
@@ -18,6 +19,23 @@ export default defineConfig({
       title: "cl-mcp",
       description:
         "An MCP server that gives LLMs accurate, build-time metadata for Angular and React component libraries.",
+      // "Blueprint" theme — engineering-drawing identity over Starlight
+      // (palette, IBM Plex fonts, hairline grid). See src/styles/blueprint.css.
+      customCss: ["./src/styles/blueprint.css"],
+      // Code blocks: syntax colors tuned to the blueprint palette (blue +
+      // orange accents, teal types, muted comments) and a squared Plex-Mono
+      // drafting frame. Themes live in src/styles/blueprint-code-themes.mjs.
+      expressiveCode: {
+        themes: [blueprintDark, blueprintLight],
+        styleOverrides: {
+          borderRadius: "0",
+          borderColor: "var(--sl-color-hairline)",
+          codeFontFamily: "'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
+          frames: {
+            shadowColor: "transparent",
+          },
+        },
+      },
       social: [
         {
           icon: "github",
