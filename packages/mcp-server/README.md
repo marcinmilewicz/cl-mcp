@@ -49,11 +49,27 @@ The binary entrypoint is `src/index.ts`. All library-specific behavior (selector
 
 ## 2. Startup: Every Configurable Option
 
-Command (after `npm run build`):
+Command:
 
 ```bash
 CL_MCP_METADATA_PATH=./data/angular-material/component-metadata.json \
-  node packages/mcp-server/dist/index.js
+  npx -y @cl-mcp/mcp-server
+```
+
+(From a source checkout, the equivalent is
+`node packages/mcp-server/dist/index.js` after `npm run build`.)
+
+MCP clients launch it the same way — e.g. Claude Code
+(`~/.claude/mcp_servers.json`):
+
+```json
+{
+  "cl-mcp": {
+    "command": "npx",
+    "args": ["-y", "@cl-mcp/mcp-server"],
+    "env": { "CL_MCP_DATA_DIR": "/absolute/path/to/data" }
+  }
+}
 ```
 
 ### 2.1 Environment variables

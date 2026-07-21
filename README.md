@@ -15,13 +15,22 @@ MCP (Model Context Protocol) server for component library metadata. Gives LLMs a
 
 ## Quick start
 
-```bash
-# Install dependencies
-npm install
+The tools are published to npm — run them with `npx`, no clone or build
+required:
 
-# Build all packages
-npm run build
+```bash
+# 1. Generate metadata for your libraries (writes ./data/<lib>/component-metadata.json)
+npx -y @cl-mcp/cli generate --config ./cl-mcp.yaml
+
+# 2a. Serve it over MCP (stdio)
+CL_MCP_DATA_DIR=./data npx -y @cl-mcp/mcp-server
+
+# 2b. …or query it straight from the shell
+npx -y @cl-mcp/cli list-libraries --data-dir ./data
 ```
+
+Cloning + `npm install` + `npm run build` is only needed to **develop cl-mcp
+itself** — see [Development](#development).
 
 ## Development
 
@@ -93,10 +102,10 @@ scan:                         # optionally: every subdirectory is a candidate
 ```
 
 ```bash
-node packages/analyzer/dist/cli/generate-metadata.js --config ./cl-mcp.yaml
+npx -y @cl-mcp/cli generate --config ./cl-mcp.yaml
 # or ad hoc, no config file:
-node packages/analyzer/dist/cli/generate-metadata.js --lib libs/ui --lib libs/forms --output-dir ./data
-node packages/analyzer/dist/cli/generate-metadata.js --scan libs --output-dir ./data
+npx -y @cl-mcp/cli generate --lib libs/ui --lib libs/forms --output-dir ./data
+npx -y @cl-mcp/cli generate --scan libs --output-dir ./data
 ```
 
 This writes `data/<library>/component-metadata.json` per library plus
@@ -109,7 +118,7 @@ required**.
 ### Single library
 
 ```bash
-node packages/analyzer/dist/cli/generate-metadata.js \
+npx -y @cl-mcp/cli generate \
   --framework angular|react \
   --path <library-source-path> \
   --package <package-name> \
@@ -118,6 +127,12 @@ node packages/analyzer/dist/cli/generate-metadata.js \
   [--docs <docs-file-path>] \
   [--output <output-path>]
 ```
+
+> **Angular libraries:** analysis needs the optional `@angular/compiler` peer,
+> which an isolated `npx` run won't have. Run `generate` from a project where
+> `@angular/compiler` is installed, or co-install it for the run:
+> `npx -y -p @cl-mcp/cli -p @angular/compiler cl-mcp generate --framework angular …`.
+> React needs nothing extra.
 
 | Flag | Required | Description |
 |------|----------|-------------|
@@ -154,10 +169,10 @@ Metadata resolution (checked in order):
 ```bash
 # single library
 CL_MCP_METADATA_PATH=./data/angular-material/component-metadata.json \
-  node packages/mcp-server/dist/index.js
+  npx -y @cl-mcp/mcp-server
 
 # whole workspace
-CL_MCP_DATA_DIR=./data node packages/mcp-server/dist/index.js
+CL_MCP_DATA_DIR=./data npx -y @cl-mcp/mcp-server
 ```
 
 ### Connecting to an LLM client
@@ -167,8 +182,8 @@ Example for Claude Code (`~/.claude/mcp_servers.json`):
 ```json
 {
   "cl-mcp": {
-    "command": "node",
-    "args": ["/absolute/path/to/packages/mcp-server/dist/index.js"],
+    "command": "npx",
+    "args": ["-y", "@cl-mcp/mcp-server"],
     "env": {
       "CL_MCP_DATA_DIR": "/absolute/path/to/data"
     }
@@ -201,9 +216,9 @@ suggestions. React compound names resolve in both forms: `Dialog.Root` and
 ## The `cl-mcp` CLI (no MCP client required)
 
 ```bash
-node packages/cli/dist/index.js list-libraries --data-dir ./data
-node packages/cli/dist/index.js get ui:Button --detail api --data-dir ./data
-node packages/cli/dist/index.js validate --components Button --code '<Button disabled={true} />' --data-dir ./data
+npx -y @cl-mcp/cli list-libraries --data-dir ./data
+npx -y @cl-mcp/cli get ui:Button --detail api --data-dir ./data
+npx -y @cl-mcp/cli validate --components Button --code '<Button disabled={true} />' --data-dir ./data
 ```
 
 Same handlers as the MCP tools; markdown to stdout, logs to stderr, exit

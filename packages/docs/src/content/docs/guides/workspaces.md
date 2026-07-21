@@ -14,18 +14,18 @@ The workspace layer (`src/workspace/`) is configured with a Zod-validated
 framework detector infers it from dependencies and a source scan when omitted.
 
 ```bash
-node packages/analyzer/dist/cli/generate-metadata.js --config ./cl-mcp.yaml
+npx -y @cl-mcp/cli generate --config ./cl-mcp.yaml
 ```
 
 You can also skip the config file entirely:
 
 ```bash
 # explicit library paths
-node packages/analyzer/dist/cli/generate-metadata.js \
+npx -y @cl-mcp/cli generate \
   --lib libs/ui --lib libs/forms --output-dir ./data
 
 # or scan a directory for libraries
-node packages/analyzer/dist/cli/generate-metadata.js --scan libs --output-dir ./data
+npx -y @cl-mcp/cli generate --scan libs --output-dir ./data
 ```
 
 ## Library discovery
@@ -45,8 +45,8 @@ in order: `tsconfig` path mappings → `package.json` name → the relative path
 Point the server or CLI at the directory and every library is loaded:
 
 ```bash
-CL_MCP_DATA_DIR=./data node packages/mcp-server/dist/index.js
-node packages/cli/dist/index.js list-libraries --data-dir ./data
+CL_MCP_DATA_DIR=./data npx -y @cl-mcp/mcp-server
+npx -y @cl-mcp/cli list-libraries --data-dir ./data
 ```
 
 Every tool accepts an optional `library` argument, and component names accept

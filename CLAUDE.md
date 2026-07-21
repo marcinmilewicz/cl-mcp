@@ -30,6 +30,10 @@ npm test -w packages/mcp-server
 npm test -w packages/cli
 npx vitest run packages/analyzer/src/some.test.ts  # Single test file
 
+# The commands below run the locally-built dist (for developing cl-mcp itself).
+# End users instead run the published npm bins via npx — see README "Quick start":
+#   npx -y @cl-mcp/cli generate ...   |   npx -y @cl-mcp/mcp-server   |   npx -y @cl-mcp/cli <command>
+
 # Metadata generation (after build)
 # single library:
 node packages/analyzer/dist/cli/generate-metadata.js --framework angular|react --path <library-path> --package <name> [--prefix <selector-prefix>] [--storybook <path>] [--docs <path>] [--output <path>]

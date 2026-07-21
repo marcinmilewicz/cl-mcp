@@ -43,10 +43,12 @@ The CLI entrypoint is `src/cli/generate-metadata.ts`. The Angular AST core is `s
 
 ## 2. CLI: Every Configurable Option
 
-Command:
+Command — the analyzer ships as the `cl-mcp-analyze` bin
+(`npx -y @cl-mcp/analyzer …`); `npx -y @cl-mcp/cli generate …` forwards to the
+exact same bin, so either entry point takes the flags below:
 
 ```bash
-node packages/analyzer/dist/cli/generate-metadata.js \
+npx -y @cl-mcp/analyzer \
   --framework angular \
   --path <library-source-path> \
   [--package <name>] \
@@ -57,6 +59,10 @@ node packages/analyzer/dist/cli/generate-metadata.js \
   [--output <path>] \
   [--allow-partial]
 ```
+
+> Analyzing **Angular** libraries needs the optional `@angular/compiler` peer,
+> absent from an isolated `npx` run — install it alongside, e.g.
+> `npx -y -p @cl-mcp/analyzer -p @angular/compiler cl-mcp-analyze --framework angular …`.
 
 | Flag | Required | Default | Purpose |
 |------|----------|---------|---------|
@@ -503,7 +509,7 @@ This section walks concrete inputs (Angular source) through the pipeline to conc
 Say you have Angular Material checked out at `/tmp/material/src/material` and Storybook stories at `/tmp/material-storybook/src`. The canonical invocation is:
 
 ```bash
-node packages/analyzer/dist/cli/generate-metadata.js \
+npx -y @cl-mcp/analyzer \
   --framework angular \
   --path /tmp/material/src/material \
   --package @angular/material \

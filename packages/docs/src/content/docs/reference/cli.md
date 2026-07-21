@@ -8,8 +8,11 @@ handlers as the MCP server, exposed as a `cl-mcp` binary. Use it for agents
 without an MCP client, in CI, or interactively.
 
 ```bash
-node packages/cli/dist/index.js <command> [options]
+npx -y @cl-mcp/cli <command> [options]
 ```
+
+Everything below shows `npx -y @cl-mcp/cli …`. If you install the package
+globally (`npm i -g @cl-mcp/cli`), invoke it as the bare `cl-mcp` bin instead.
 
 ## Two-level, LLM-oriented help
 
@@ -24,13 +27,13 @@ The CLI ships help written for agents to read:
 
 ```bash
 # list every loaded library
-node packages/cli/dist/index.js list-libraries --data-dir ./data
+npx -y @cl-mcp/cli list-libraries --data-dir ./data
 
 # fetch one component (lib:Name qualifier supported)
-node packages/cli/dist/index.js get ui:Button --data-dir ./data
+npx -y @cl-mcp/cli get ui:Button --data-dir ./data
 
 # validate usage (JSX for React, template for Angular)
-node packages/cli/dist/index.js validate \
+npx -y @cl-mcp/cli validate \
   --components Dialog.Root \
   --code '<Dialog.Root defaultOpen={true} />'
 ```
