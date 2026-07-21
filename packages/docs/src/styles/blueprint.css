@@ -1,0 +1,376 @@
+/* =============================================================================
+   cl-mcp docs — "Blueprint" theme
+   Engineering-drawing identity over Starlight: cool drafting paper, hairline
+   grid, blueprint-blue accent + a construction-orange highlight, IBM Plex.
+   Light = blueprint on paper. Dark = cyanotype (deep navy, cyan lines).
+   ---------------------------------------------------------------------------
+   Self-hosted fonts (no CDN; ship with the GitHub Pages build):
+============================================================================= */
+@import "@fontsource-variable/ibm-plex-sans/wght.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
+
+/* -----------------------------------------------------------------------------
+   Design tokens
+----------------------------------------------------------------------------- */
+:root {
+  --sl-font: "IBM Plex Sans Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --sl-font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Blueprint-specific tokens (consumed by the rules below). */
+  --bp-blue: #1d6fa5;
+  --bp-ink: #123047;
+  --bp-orange: #d1622b;
+  --bp-grid: rgba(29, 111, 165, 0.09);
+  --bp-grid-strong: rgba(29, 111, 165, 0.16);
+  --bp-hairline: #a9c2d2;
+  --bp-paper: #eef3f6;
+  --bp-panel: #e6edf1;
+
+  /* Radius: this is a drafting sheet — everything is squared off. */
+  --sl-radius-small: 0px;
+  --sl-radius-medium: 0px;
+  --sl-radius-large: 0px;
+}
+
+/* Dark theme is Starlight's default (:root). Cyanotype palette. */
+:root {
+  --bp-blue: #4aa8dd;
+  --bp-ink: #cfe0ea;
+  --bp-orange: #e6874a;
+  --bp-grid: rgba(74, 168, 221, 0.08);
+  --bp-grid-strong: rgba(74, 168, 221, 0.15);
+  --bp-hairline: #1f3d50;
+  --bp-paper: #0c1a24;
+  --bp-panel: #0f2130;
+
+  --sl-color-accent-low: #10303f;
+  --sl-color-accent: #2f7fb0;
+  --sl-color-accent-high: #9fd0ea;
+
+  --sl-color-white: #eef5f9;
+  --sl-color-gray-1: #dbe7ee;
+  --sl-color-gray-2: #b4c6d1;
+  --sl-color-gray-3: #7f97a6;
+  --sl-color-gray-4: #4d6675;
+  --sl-color-gray-5: #2c4453;
+  --sl-color-gray-6: #16303e;
+  --sl-color-gray-7: #102734;
+  --sl-color-black: #0c1a24;
+
+  --sl-color-bg: #0c1a24;
+  --sl-color-bg-nav: #0d1f2b;
+  --sl-color-bg-sidebar: #0d1f2b;
+  --sl-color-hairline: #1c3a4d;
+  --sl-color-hairline-light: #16303e;
+  --sl-color-hairline-shade: #0a1620;
+  --sl-color-text-accent: #6fc0e8;
+  --sl-color-bg-inline-code: #12283580;
+}
+
+/* Light theme — blueprint on drafting paper. */
+:root[data-theme="light"] {
+  --sl-color-accent-low: #d5e6ef;
+  --sl-color-accent: #1d6fa5;
+  --sl-color-accent-high: #0f3f5f;
+
+  --sl-color-white: #0e2637;
+  --sl-color-gray-1: #17384c;
+  --sl-color-gray-2: #2b5064;
+  --sl-color-gray-3: #4f7288;
+  --sl-color-gray-4: #6a8ba0;
+  --sl-color-gray-5: #a9c2d2;
+  --sl-color-gray-6: #cfdde6;
+  --sl-color-gray-7: #e2ebf0;
+  --sl-color-black: #eef3f6;
+
+  --sl-color-bg: #eef3f6;
+  --sl-color-bg-nav: #e6edf1;
+  --sl-color-bg-sidebar: #e6edf1;
+  --sl-color-hairline: #a9c2d2;
+  --sl-color-hairline-light: #bccfdc;
+  --sl-color-hairline-shade: #93b2c6;
+  --sl-color-text: #123047;
+  --sl-color-text-accent: #1d6fa5;
+  --sl-color-bg-inline-code: #dbe7ef;
+}
+
+/* -----------------------------------------------------------------------------
+   Drafting-sheet grid — a faint blueprint grid fixed behind the whole page.
+   Opaque content panels sit on top; it reads through the margins, the header
+   and (most visibly) the splash hero.
+----------------------------------------------------------------------------- */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--bp-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bp-grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+/* Keep interactive chrome above the grid. */
+.page,
+header.header,
+.sidebar-pane {
+  position: relative;
+  z-index: 1;
+}
+
+/* -----------------------------------------------------------------------------
+   Header / nav — a drawing-sheet border, mono title.
+----------------------------------------------------------------------------- */
+header.header {
+  border-bottom: 1px solid var(--bp-blue);
+  background: color-mix(in srgb, var(--sl-color-bg-nav) 88%, transparent);
+  backdrop-filter: blur(6px);
+}
+.site-title {
+  font-family: var(--sl-font-mono);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.site-title span,
+.site-title {
+  color: var(--sl-color-white);
+}
+
+/* Squared-off, hairline-bordered controls throughout. */
+.sidebar-pane {
+  border-inline-end: 1px solid var(--sl-color-hairline);
+}
+site-search button,
+.sl-flexpanel,
+starlight-menu-button button {
+  border-radius: 0 !important;
+}
+
+/* -----------------------------------------------------------------------------
+   Content typography — section headings become drawing section-rules.
+----------------------------------------------------------------------------- */
+.sl-markdown-content h2 {
+  border-bottom: 1px solid var(--sl-color-hairline);
+  padding-bottom: 0.3em;
+  letter-spacing: -0.01em;
+}
+/* A construction-orange registration tick marks each top-level section (h2
+   only — applying it to every h3 as well reads as noise on tool-list pages). */
+.sl-markdown-content h2::before {
+  content: "";
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  margin-inline-end: 0.5em;
+  border: 1.5px solid var(--bp-orange);
+  border-right: 0;
+  border-bottom: 0;
+  vertical-align: 0.05em;
+}
+.sl-markdown-content a {
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+
+/* Inline code + code blocks: squared, hairline-framed. */
+.sl-markdown-content code:not(:where(.expressive-code *)) {
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: 0;
+  padding: 0.1em 0.35em;
+}
+/* Frame border + radius + syntax colors are handled by the Expressive Code
+   config (styleOverrides + blueprint themes) in astro.config.mjs. */
+
+/* Tables read like a spec sheet. */
+.sl-markdown-content table {
+  border: 1px solid var(--sl-color-hairline);
+}
+.sl-markdown-content th {
+  font-family: var(--sl-font-mono);
+  font-size: 0.82em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--sl-color-bg-nav);
+}
+
+/* Sidebar current page — a construction-orange dimension tick. */
+.sidebar-content a[aria-current="page"] {
+  background: transparent;
+  border-inline-start: 2px solid var(--bp-orange);
+  color: var(--bp-orange);
+  font-weight: 600;
+}
+
+/* Asides — squared, and recolored from Starlight's default blue/purple/
+   orange/red hues into the blueprint palette: note = blueprint blue,
+   tip = teal, caution = construction orange, danger = brick red. Starlight
+   sets these vars inside @layer starlight.components, so unlayered rules win
+   without !important. Base = dark (cyanotype); light overrides below. */
+.starlight-aside {
+  border-radius: 0;
+  border-inline-start-width: 3px;
+}
+.starlight-aside--note {
+  --sl-color-asides-text-accent: #a6d4ee;
+  --sl-color-asides-border: #4aa8dd;
+  background-color: #10283a;
+}
+.starlight-aside--tip {
+  --sl-color-asides-text-accent: #a0dce2;
+  --sl-color-asides-border: #4fb3bf;
+  background-color: #0f2b30;
+}
+.starlight-aside--caution {
+  --sl-color-asides-text-accent: #f0b385;
+  --sl-color-asides-border: #e6874a;
+  background-color: #2b2015;
+}
+.starlight-aside--danger {
+  --sl-color-asides-text-accent: #f0a595;
+  --sl-color-asides-border: #e06a52;
+  background-color: #2c1a17;
+}
+:root[data-theme="light"] .starlight-aside--note {
+  --sl-color-asides-text-accent: #124d72;
+  --sl-color-asides-border: #1d6fa5;
+  background-color: #dbe9f1;
+}
+:root[data-theme="light"] .starlight-aside--tip {
+  --sl-color-asides-text-accent: #1a5560;
+  --sl-color-asides-border: #2a7d8c;
+  background-color: #d9e9eb;
+}
+:root[data-theme="light"] .starlight-aside--caution {
+  --sl-color-asides-text-accent: #8a3d16;
+  --sl-color-asides-border: #c96328;
+  background-color: #f2e2d6;
+}
+:root[data-theme="light"] .starlight-aside--danger {
+  --sl-color-asides-text-accent: #862519;
+  --sl-color-asides-border: #c0392b;
+  background-color: #f2ddd9;
+}
+.card {
+  border-radius: 0;
+  border: 1px solid var(--sl-color-hairline);
+}
+/* Starlight rotates each card icon's box border through a 4-hue palette
+   (--sl-card-border, set by :nth-child inside @layer starlight.components).
+   Unify it into one squared blueprint-blue stamp. Layered normal styles lose
+   to these unlayered !important declarations, so this reliably wins. */
+.card .title .icon,
+.card .icon {
+  color: var(--bp-blue) !important;
+  border: 1px solid var(--bp-blue) !important;
+  background: var(--sl-color-accent-low) !important;
+  border-radius: 0 !important;
+}
+
+/* -----------------------------------------------------------------------------
+   Splash hero — the drawing sheet. Grid, dimension frame, title block.
+----------------------------------------------------------------------------- */
+.hero {
+  position: relative;
+  padding-block: clamp(1.5rem, 5vw, 3rem);
+}
+/* Full-strength grid + a blue drawing border only on the hero. */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: -0.5rem;
+  z-index: -1;
+  border: 1.5px solid var(--bp-blue);
+  background-image:
+    linear-gradient(var(--bp-grid-strong) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bp-grid-strong) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+/* Corner ticks on the hero frame. */
+.hero::after {
+  content: "cl-mcp / DOCS · REV 2.0.0 · SHEET 1";
+  position: absolute;
+  right: -0.5rem;
+  bottom: -0.5rem;
+  z-index: 1;
+  font-family: var(--sl-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: var(--bp-blue);
+  background: var(--sl-color-bg);
+  border: 1.5px solid var(--bp-blue);
+  border-right: 0;
+  border-bottom: 0;
+  padding: 0.4rem 0.7rem;
+}
+.hero .tagline {
+  font-family: var(--sl-font-mono);
+  font-size: clamp(0.95rem, 1.6vw, 1.1rem);
+  line-height: 1.55;
+  color: var(--sl-color-gray-2);
+}
+.hero h1 {
+  letter-spacing: -0.02em;
+  font-weight: 640;
+}
+
+/* Hero actions — drafting buttons. Primary = filled orange, square. */
+.hero .actions a.sl-link-button {
+  border-radius: 0;
+  font-family: var(--sl-font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+  border: 1.5px solid var(--bp-blue);
+}
+.hero .actions a.sl-link-button.primary {
+  background: var(--bp-orange);
+  border-color: var(--bp-orange);
+  color: #fff;
+}
+.hero .actions a.sl-link-button.minimal {
+  color: var(--bp-blue);
+  background: transparent;
+}
+
+/* -----------------------------------------------------------------------------
+   Spec strip — dimension row rendered on the home page below the hero.
+   (markup lives in index.mdx)
+----------------------------------------------------------------------------- */
+.bp-spec {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  margin: 2.5rem 0 1rem;
+  border: 1px solid var(--sl-color-hairline);
+  border-inline-start: 0;
+}
+.bp-spec > div {
+  border-inline-start: 1px solid var(--sl-color-hairline);
+  padding: 1.1rem 1.25rem;
+}
+.bp-spec .n {
+  font-family: var(--sl-font-mono);
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--bp-blue);
+  letter-spacing: -0.02em;
+}
+.bp-spec .l {
+  font-family: var(--sl-font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--sl-color-gray-3);
+  margin-top: 0.5rem;
+}
+@media (max-width: 640px) {
+  .bp-spec { grid-template-columns: repeat(2, 1fr); }
+  .bp-spec > div:nth-child(3),
+  .bp-spec > div:nth-child(4) { border-top: 1px solid var(--sl-color-hairline); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  header.header { backdrop-filter: none; }
+}
